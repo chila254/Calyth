@@ -20,10 +20,26 @@ private val DarkColors = darkColorScheme(
     onError = Color.White
 )
 
+private val LightColors = lightColorScheme(
+    primary = Color(0xFF6366f1),
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFFe0e7ff),
+    secondary = Color(0xFFF4F4F5),
+    onSecondary = Color(0xFF3F3F46),
+    background = Color(0xFFFAFAFA),
+    onBackground = Color(0xFF18181B),
+    surface = Color(0xFFFFFFFF),
+    onSurface = Color(0xFF18181B),
+    surfaceVariant = Color(0xFFF4F4F5),
+    onSurfaceVariant = Color(0xFF71717A),
+    error = Color(0xFFEF4444),
+    onError = Color.White
+)
+
 @Composable
-fun CalythTheme(content: @Composable () -> Unit) {
+fun CalythTheme(darkTheme: Boolean = true, content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = DarkColors,
+        colorScheme = if (darkTheme) DarkColors else LightColors,
         content = content
     )
 }
