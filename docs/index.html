@@ -336,7 +336,7 @@
         abort=new AbortController();
         const ep=wsOn?'/search':'/chat';
         const r=await fetch(srv+ep,{method:'POST',headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({model,msg,system:sys||undefined}),signal:abort.signal});
+            body:JSON.stringify({model,message:msg,system:sys||undefined}),signal:abort.signal});
         return await r.text();
     }
 

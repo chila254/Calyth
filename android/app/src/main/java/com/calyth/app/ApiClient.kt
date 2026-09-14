@@ -95,15 +95,16 @@ object ApiClient {
 
         return sseFactory.newEventSource(request, object : EventSourceListener() {
             override fun onEvent(eventSource: EventSource, id: String?, type: String?, data: String) {
-                if (data == "[DONE]" || data == "\"[DONE]\"") {
+                val raw = data
+                if (raw == "[DONE]" || raw == "\"[DONE]\"") {
                     onDone()
                     return
                 }
                 try {
-                    val token = data.trim().removeSurrounding("\"")
-                    if (token.isNotBlank()) onToken(token)
+                    val token = raw.removeSurrounding("\"")
+                    onToken(token)
                 } catch (_: Exception) {
-                    onToken(data)
+                    onToken(raw)
                 }
             }
 

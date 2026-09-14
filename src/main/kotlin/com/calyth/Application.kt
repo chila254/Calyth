@@ -116,6 +116,7 @@ fun Application.module() {
 
         post("/chat") {
             val req = call.receive<ChatRequest>()
+            if (req.message.isBlank()) { call.respondText("Error: Empty message"); return@post }
             val msgs = buildMessages(req.system, req.message)
             val reply = if (req.model.startsWith("gemini")) callGemini(client, geminiKey, req.model, req.system, req.message)
                         else callGroq(client, groqKey, req.model, msgs)
@@ -142,7 +143,9 @@ fun Application.module() {
             }
             if (groqKey.isBlank()) { call.respondText("data: GROQ_API_KEY not configured\n\n", ContentType.Text.EventStream); return@post }
 
-            call.respondText(streamGroqResponse(groqKey, req.model, req.system, req.message), ContentType.Text.EventStream)
+            call.respond(ContentType.Text.EventStream) {
+                streamGroqToStream(groqKey, req.model, req.system, req.message, this)
+            }
         }
 
         post("/search") {
@@ -254,6 +257,61 @@ private fun streamGroqResponse(apiKey: String, model: String, system: String?, m
 
 fun String.jsonEscape(): String = this.replace("\\", "\\\\").replace("\"", "\\\"")
     .replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
+
+private suspend fun streamGroqToStream(apiKey: String, model: String, system: String?, message: String, out: java.io.OutputStream) {
+    val msgs = buildMessages(system, message)
+    val bodyJson = buildString {
+        append("{\"model\":\"$model\",\"stream\":true,\"messages\":[")
+        msgs.forEachIndexed { i, m ->
+            if (i > 0) append(",")
+            append("{\"role\":\"${m.role}\",\"content\":\"${m.content.jsonEscape()}\"}")
+        }
+        append("]}")
+    }
+
+    val url = URL("https://api.groq.com/openai/v1/chat/completions")
+    val conn = url.openConnection() as HttpURLConnection
+    conn.requestMethod = "POST"
+    conn.setRequestProperty("Authorization", "Bearer $apiKey")
+    conn.setRequestProperty("Content-Type", "application/json")
+    conn.doOutput = true
+    conn.connectTimeout = 30_000
+    conn.readTimeout = 120_000
+    conn.outputStream.use { it.write(bodyJson.toByteArray()) }
+
+    try {
+        val reader = BufferedReader(InputStreamReader(conn.inputStream))
+        var line: String?
+        while (reader.readLine().also { line = it } != null) {
+            val l = line ?: continue
+            if (l.startsWith("data: ")) {
+                val data = l.removePrefix("data: ").trim()
+                if (data == "[DONE]") {
+                    out.write("data: [DONE]\n\n".toByteArray())
+                    out.flush()
+                    break
+                }
+                try {
+                    val chunk = Json { ignoreUnknownKeys = true; isLenient = true }
+                        .decodeFromString<StreamChunk>(data)
+                    val content = chunk.choices.firstOrNull()?.delta?.content
+                    if (content != null) {
+                        out.write("data: ${content.jsonEscape()}\n\n".toByteArray())
+                        out.flush()
+                    }
+                    if (chunk.choices.firstOrNull()?.finish_reason != null) {
+                        out.write("data: [DONE]\n\n".toByteArray())
+                        out.flush()
+                        break
+                    }
+                } catch (_: Exception) {}
+            }
+        }
+    } finally {
+        conn.disconnect()
+        out.close()
+    }
+}
 
 private suspend fun callGroq(client: HttpClient, apiKey: String, model: String, messages: List<Message>): String {
     if (apiKey.isBlank()) return "Error: GROQ_API_KEY not configured"
