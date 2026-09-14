@@ -143,7 +143,7 @@ fun Application.module() {
             }
             if (groqKey.isBlank()) { call.respondText("data: GROQ_API_KEY not configured\n\n", ContentType.Text.EventStream); return@post }
 
-            call.respond(ContentType.Text.EventStream) {
+            call.respondOutputStream(ContentType.Text.EventStream) {
                 streamGroqToStream(groqKey, req.model, req.system, req.message, this)
             }
         }
