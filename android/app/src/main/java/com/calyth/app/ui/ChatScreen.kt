@@ -298,7 +298,7 @@ fun ChatScreen() {
                                 clipboard.setPrimaryClip(clip)
                             }
                         }) {
-                            Icon(Icons.Default.ContentCopy, "Copy", tint = Color(0xFFa1a1aa), modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.Share, "Copy", tint = Color(0xFFa1a1aa), modifier = Modifier.size(20.dp))
                         }
 
                         // Export
