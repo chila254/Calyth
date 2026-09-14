@@ -1,0 +1,18 @@
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+
+# Install nginx
+RUN apt-get update && apt-get install -y nginx && rm -rf /var/lib/apt/lists/*
+
+# Copy built JAR
+COPY build/libs/Calyth-1.0-SNAPSHOT.jar app.jar
+
+# Copy nginx config
+COPY deploy/nginx.conf /etc/nginx/sites-available/default
+
+# Copy entrypoint
+COPY deploy/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+EXPOSE 80
+ENTRYPOINT ["/entrypoint.sh"]
