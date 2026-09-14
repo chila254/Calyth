@@ -128,14 +128,14 @@ fun ChatScreen() {
                 Spacer(Modifier.height(16.dp))
 
                 // Chat list
-                Text(
-                    "Recent",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiUpperCase,
-                    color = Color(0xFF71717a),
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
-                    letterSpacing = 0.5.sp
-                )
+                    Text(
+                        "Recent",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF71717a),
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+                        letterSpacing = 0.5.sp
+                    )
 
                 LazyColumn {
                     items(conversations) { chat ->
@@ -234,13 +234,12 @@ fun ChatScreen() {
                                 val text = messages.joinToString("\n\n") { m ->
                                     "${if (m.isUser) "You" else "Calyth"}: ${m.content}"
                                 }
-                                // Copy to clipboard
                                 val clipboard = android.content.ClipData.newPlainText("chat", text)
                                 android.content.ClipboardManager::class.java
                                     .getDeclaredConstructor().newInstance()
                             }
                         }) {
-                            Icon(Icons.Default.FileDownload, "Export", tint = Color(0xFFa1a1aa), modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.Share, "Export", tint = Color(0xFFa1a1aa), modifier = Modifier.size(20.dp))
                         }
 
                         // Settings
