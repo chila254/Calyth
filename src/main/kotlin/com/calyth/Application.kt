@@ -136,13 +136,13 @@ fun Application.module() {
         post("/chat/stream") {
             val req = call.receive<ChatRequest>()
             if (req.model.startsWith("gemini")) {
-                call.respondText(callGemini(client, geminiKey, req.model, req.system, req.message))
+                val reply = callGemini(client, geminiKey, req.model, req.system, req.message)
+                call.respondText("data: ${reply.jsonEscape()}\n\ndata: [DONE]\n\n", ContentType.Text.EventStream)
                 return@post
             }
-            if (groqKey.isBlank()) { call.respondText("Error: GROQ_API_KEY not configured"); return@post }
+            if (groqKey.isBlank()) { call.respondText("data: GROQ_API_KEY not configured\n\n", ContentType.Text.EventStream); return@post }
 
-            val result = streamGroqResponse(groqKey, req.model, req.system, req.message)
-            call.respondText(result, ContentType.Text.EventStream)
+            call.respondText(streamGroqResponse(groqKey, req.model, req.system, req.message), ContentType.Text.EventStream)
         }
 
         post("/search") {
@@ -224,25 +224,32 @@ private fun streamGroqResponse(apiKey: String, model: String, system: String?, m
     conn.readTimeout = 120_000
     conn.outputStream.use { it.write(bodyJson.toByteArray()) }
 
-    val result = StringBuilder()
+    val sseResult = StringBuilder()
     val reader = BufferedReader(InputStreamReader(conn.inputStream))
     var line: String?
     while (reader.readLine().also { line = it } != null) {
         val l = line ?: continue
         if (l.startsWith("data: ")) {
             val data = l.removePrefix("data: ").trim()
-            if (data == "[DONE]") break
+            if (data == "[DONE]") {
+                sseResult.append("data: [DONE]\n\n")
+                break
+            }
             try {
                 val chunk = Json { ignoreUnknownKeys = true; isLenient = true }
                     .decodeFromString<StreamChunk>(data)
                 val content = chunk.choices.firstOrNull()?.delta?.content
-                if (content != null) result.append(content)
-                if (chunk.choices.firstOrNull()?.finish_reason != null) break
+                if (content != null) sseResult.append("data: ${content.jsonEscape()}\n\n")
+                if (chunk.choices.firstOrNull()?.finish_reason != null) {
+                    sseResult.append("data: [DONE]\n\n")
+                    break
+                }
             } catch (_: Exception) {}
         }
     }
     conn.disconnect()
-    return result.toString()
+    if (sseResult.isEmpty()) sseResult.append("data: [DONE]\n\n")
+    return sseResult.toString()
 }
 
 fun String.jsonEscape(): String = this.replace("\\", "\\\\").replace("\"", "\\\"")

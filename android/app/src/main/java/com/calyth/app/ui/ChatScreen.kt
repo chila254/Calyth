@@ -141,7 +141,16 @@ fun ChatScreen() {
             val onError: (String) -> Unit = { e -> messages = messages + ChatMessage("Error: $e", false); isLoading = false }
             if (webSearchEnabled) { val r = ApiClient.searchWeb(selectedModel, text); messages = messages + ChatMessage(r, false, selectedModel); isLoading = false }
             else if (img != null) { val r = ApiClient.uploadImage(selectedModel, text, img); messages = messages + ChatMessage(r, false, selectedModel); isLoading = false }
-            else ApiClient.sendStreaming(selectedModel, text, null, onUpdate, onDone, onError)
+            else {
+                try {
+                    ApiClient.sendStreaming(selectedModel, text, null, onUpdate, onDone, onError)
+                } catch (e: Exception) {
+                    // Fallback to non-streaming /chat endpoint
+                    val r = ApiClient.sendMessage(selectedModel, text, null)
+                    messages = messages + ChatMessage(r, false, selectedModel)
+                    isLoading = false
+                }
+            }
         }
     }
 
