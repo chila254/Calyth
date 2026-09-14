@@ -87,6 +87,7 @@ val availableModels = listOf(
 
 @Serializable data class SharedChat(val id: String, val title: String, val messages: List<Message>, val createdAt: Long)
 @Serializable data class VisionRequest(val model: String, val message: String, val imageBase64: String? = null)
+@Serializable data class GenerateImageRequest(val prompt: String)
 
 val sharedChats = ConcurrentHashMap<String, SharedChat>()
 
@@ -200,6 +201,14 @@ fun Application.module() {
                 }
                 call.respondText(html, ContentType.Text.Html)
             } else call.respondText("Not found", status = HttpStatusCode.NotFound)
+        }
+
+        post("/generate-image") {
+            val req = call.receive<GenerateImageRequest>()
+            val prompt = req.prompt.ifBlank { "A beautiful landscape" }
+            val encoded = java.net.URLEncoder.encode(prompt, "utf-8")
+            val url = "https://image.pollinations.ai/prompt/$encoded?width=1024&height=1024&nologo=true"
+            call.respond(mapOf("url" to url))
         }
     }
 }
