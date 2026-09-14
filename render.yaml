@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: calyth
+    runtime: java
+    plan: free
+    buildCommand: ./gradlew build
+    startCommand: java -jar build/libs/Calyth-1.0-SNAPSHOT.jar
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+    healthCheckPath: /health

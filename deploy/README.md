@@ -1,85 +1,40 @@
-# Oracle Cloud Free Tier — Calyth Deployment Guide
+# Calyth — Render Deployment Guide
 
-## 1. Create VM
+## Quick Deploy (1 click)
 
-1. Go to [cloud.oracle.com](https://cloud.oracle.com)
-2. **Compute → Instances → Create Instance**
-3. Settings:
-   - **Name**: `calyth`
-   - **Image**: Ubuntu 22.04 (or any Linux)
-   - **Shape**: VM.Standard.A1.Flex (ARM — always free)
-   - **OCPU**: 4 (max free)
-   - **RAM**: 24 GB (max free)
-   - **Boot Volume**: 200 GB
-4. **Add SSH key** — paste your public key
-5. **Create** — note the public IP
+1. Push your code to GitHub
+2. Go to [render.com](https://render.com) → **New** → **Blueprint**
+3. Connect your `chila254/Calyth` repo
+4. Render auto-detects `render.yaml` and creates the service
+5. Add your API keys in **Environment** tab:
+   - `GROQ_API_KEY` = your Groq key
+   - `GEMINI_API_KEY` = your Gemini key (optional)
+6. Deploy
 
-## 2. Connect
+Your app will be live at `https://calyth.onrender.com`
 
-```bash
-ssh -i ~/.ssh/your_key ubuntu@<PUBLIC_IP>
+## Environment Variables
+
+| Key | Required | Where to get |
+|---|---|---|
+| `GROQ_API_KEY` | Yes | [console.groq.com/keys](https://console.groq.com/keys) |
+| `GEMINI_API_KEY` | No | [aistudio.google.com](https://aistudio.google.com) |
+
+## Free Tier Notes
+
+- Render free tier spins down after 15 min of inactivity
+- First request after spin-down takes ~30s
+- Good for demo/personal use
+
+## Update Android App
+
+In the app settings, set server URL to:
 ```
-
-## 3. Deploy
-
-```bash
-# Clone and deploy
-git clone https://github.com/chila254/Calyth.git
-cd Calyth
-
-# Create .env with your API keys
-cp deploy/.env.example .env
-nano .env   # paste your keys
-
-# Build and start with Docker
-sudo apt-get update && sudo apt-get install -y docker.io git
-sudo systemctl enable docker && sudo systemctl start docker
-
-# Install docker-compose
-sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" \
-  -o /usr/local/bin/docker-compose
-sudo chmod +x /usr/local/bin/docker-compose
-
-# Build and run
-docker-compose up --build -d
-```
-
-## 4. Open Firewall
-
-In Oracle Cloud console:
-1. Go to your VM → **Subnet** → **Default Security List**
-2. **Add Ingress Rules**:
-   - **Source CIDR**: `0.0.0.0/0`
-   - **Destination Port**: `80`
-
-## 5. Test
-
-```bash
-curl http://<YOUR_PUBLIC_IP>/health
-# Should return: OK
-```
-
-Open `http://<YOUR_PUBLIC_IP>` in your browser.
-
-## 6. Update Android App
-
-In the Android app settings, enter your server URL:
-```
-http://<YOUR_PUBLIC_IP>
+https://calyth.onrender.com
 ```
 
 ## Commands
 
-```bash
-# View logs
-docker-compose logs -f
-
-# Restart
-docker-compose restart
-
-# Stop
-docker-compose down
-
-# Update (after git pull)
-docker-compose up --build -d
-```
+- **Manual deploy**: Push to GitHub, Render auto-deploys
+- **Logs**: Render dashboard → Logs tab
+- **Restart**: Render dashboard → Manual Deploy → Clear build cache & deploy
