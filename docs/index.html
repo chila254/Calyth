@@ -83,8 +83,66 @@
         .toggle-sw.on::after{left:18px}
         .img-gen-box{padding:12px;border-top:1px solid var(--border);display:none}
         .img-gen-box.open{display:block}
-        .img-preview{margin-top:8px;border-radius:8px;overflow:hidden;border:1px solid var(--border);display:none}
+        .img-preview{margin-top:8px;border-radius:8px;overflow:hidden;border:1px solid var(--border);display:none;position:relative}
         .img-preview img{width:100%;display:block}
+        .img-loading{display:none;text-align:center;padding:20px;color:var(--fg3);font-size:12px}
+        .img-loading.on{display:block}
+        .img-loading .spinner{width:24px;height:24px;border:3px solid var(--bg4);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 8px}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .img-actions{position:absolute;bottom:6px;right:6px;display:flex;gap:4px}
+        .img-act{background:rgba(0,0,0,.7);border:none;color:#fff;width:28px;height:28px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px}
+        .img-act:hover{background:rgba(0,0,0,.9)}
+        .img-history{margin-top:8px;max-height:240px;overflow-y:auto}
+        .img-history-empty{padding:10px 4px;color:var(--fg3);font-size:11px;text-align:center}
+        .img-hist-item{display:flex;gap:8px;padding:6px;border-radius:8px;cursor:pointer;transition:background .12s;margin:2px 0}
+        .img-hist-item:hover{background:var(--bg3)}
+        .img-hist-item.active{background:var(--glow);border:1px solid var(--border)}
+        .img-hist-item img{width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid var(--border);flex-shrink:0}
+        .img-hist-info{flex:1;min-width:0}
+        .img-hist-info .p{font-size:11px;color:var(--fg2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .img-hist-info .d{font-size:10px;color:var(--fg3);margin-top:2px}
+        .sp-btn:disabled{opacity:.6;cursor:not-allowed}
+
+        .view-nav{display:flex;gap:6px;align-items:center}
+        .view-nav-btn{background:var(--bg3);border:1px solid var(--border);color:var(--fg2);padding:6px 10px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font);transition:all .12s}
+        .view-nav-btn:hover{background:var(--bg4);color:var(--fg)}
+        .view-nav-btn.on{background:var(--accent);border-color:var(--accent);color:#fff}
+        .image-view{display:none;flex:1;flex-direction:column;min-width:0;overflow:hidden}
+        .image-view.on{display:flex}
+        .main.image-mode .chat,.main.image-mode .stop,.main.image-mode .sc-bar,.main.image-mode .inp-wrap,.main.image-mode .search-bar{display:none}
+        .main.image-mode .image-view{display:flex}
+        .main.image-mode .model-sel{display:none}
+        .image-view-header{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--bg2)}
+        .image-view-tag{display:inline-block;padding:4px 8px;border:1px solid var(--accent);border-radius:20px;color:var(--accent2);font-size:11px;font-weight:600;letter-spacing:.04em;margin-bottom:6px}
+        .image-view-title{font-size:20px;font-weight:700;color:var(--fg)}
+        .image-view-subtitle{font-size:12px;color:var(--fg3);margin-top:4px}
+        .image-view-scroll{flex:1;overflow-y:auto;padding:22px 20px;scroll-behavior:smooth}
+        .image-view-inner{max-width:760px;margin:0 auto}
+        .image-result-card{margin-top:20px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+        .image-result-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-bottom:1px solid var(--border);font-size:12px;font-weight:600;color:var(--fg2)}
+        .image-result-body{min-height:220px;display:flex;align-items:center;justify-content:center;padding:12px;background:var(--bg)}
+        .image-result-body .img-preview{display:none;margin:0;border:none;width:100%;max-width:100%}
+        .image-result-body .img-preview img{max-height:520px;object-fit:contain;background:var(--bg2)}
+        .image-result-body .img-loading{padding:40px}
+        .image-prompt{padding:12px;border-top:1px solid var(--border)}
+        .image-prompt>span{display:block;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--fg3);margin-bottom:5px}
+        .image-prompt p{font-size:13px;line-height:1.6;color:var(--fg2);white-space:pre-wrap;word-break:break-word}
+        .image-history-section{margin-top:30px}
+        .image-history-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+        .image-history-head>div{display:flex;align-items:center;gap:8px}
+        .image-history-title{font-size:14px;font-weight:600;color:var(--fg)}
+        .image-history-count{font-size:11px;color:var(--fg3)}
+        .image-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+        .image-gallery .img-hist-item{flex-direction:column;align-items:stretch;padding:8px;margin:0}
+        .image-gallery .img-hist-item img{width:100%;height:150px;object-fit:cover;border-radius:8px}
+        .image-gallery .img-hist-info{padding:8px 2px 2px}
+        .image-gallery .img-hist-info .p{font-size:12px;line-height:1.4;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+        .image-gallery .img-hist-info .d{font-size:10px}
+        .image-input-wrap{padding:0 20px 20px;max-width:720px;margin:0 auto;width:100%}
+        .image-input-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);display:flex;align-items:flex-end;gap:6px;padding:10px;transition:border-color .2s}
+        .image-input-box:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--glow)}
+        .image-input-box textarea{flex:1;background:transparent;color:var(--fg);border:none;outline:none;font-size:14px;font-family:var(--font);resize:none;max-height:140px;line-height:1.5;padding:4px 0}
+        .image-input-box textarea::placeholder{color:var(--fg3)}
 
         .main{flex:1;display:flex;flex-direction:column;min-width:0}
         .topbar{padding:10px 20px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
@@ -215,6 +273,12 @@
             .inp-wrap{padding:0 12px 12px}
             .topbar{padding:10px 12px}
             .sc-bar{display:none}
+            .view-nav-btn{padding:6px 8px;font-size:11px}
+            .image-view-header{padding:14px 12px}
+            .image-view-scroll{padding:14px 12px}
+            .image-result-body .img-preview img{max-height:360px}
+            .image-gallery{grid-template-columns:repeat(2,minmax(0,1fr))}
+            .image-input-wrap{padding:0 12px 12px}
         }
     </style>
 </head>
@@ -238,12 +302,7 @@
             </div>
 
             <div class="sb-section">
-                <div class="sb-label"><span>Image Generation</span><button onclick="togglePanel('imgGen')" title="Toggle">⚙</button></div>
-                <div class="img-gen-box" id="imgGenPanel">
-                    <div class="sp-field"><label>Prompt</label><textarea id="imgPrompt" placeholder="A sunset over mountains, digital art..." rows="2"></textarea></div>
-                    <button class="sp-btn sp-btn1" onclick="generateImage()" style="width:100%">Generate Image</button>
-                    <div class="img-preview" id="imgPreview"><img id="imgResult"></div>
-                </div>
+                <button class="new-chat" onclick="showImageView()">+ Image Generation</button>
             </div>
 
             <div class="sb-section">
@@ -292,9 +351,13 @@
         </div>
     </div>
 
-    <div class="main">
+    <div class="main" id="main">
         <div class="topbar">
             <button class="menu-btn" onclick="toggleSidebar()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
+            <div class="view-nav">
+                <button class="view-nav-btn on" id="chatViewBtn" onclick="showChatView()">Chat</button>
+                <button class="view-nav-btn" id="imageViewBtn" onclick="showImageView()">Images</button>
+            </div>
             <select class="model-sel" id="modelSel"></select>
             <div class="tb-right">
                 <button class="ib" id="wsBtn" onclick="toggleWS()" title="Web Search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10A15.3 15.3 0 0 1 12 2z"/></svg></button>
@@ -321,6 +384,43 @@
                     <button class="qk-btn" onclick="qa('What are the pros and cons of microservices?')">Compare ideas</button>
                     <button class="qk-btn" onclick="qa('Help me write a professional email')">Draft an email</button>
                 </div>
+            </div>
+        </div>
+
+        <div class="image-view" id="imageView">
+            <div class="image-view-header">
+                <div>
+                    <div class="image-view-tag">Image Generation</div>
+                    <div class="image-view-title">Create and revisit images</div>
+                    <div class="image-view-subtitle">Describe what you want to see and keep every result in this workspace.</div>
+                </div>
+                <button class="sp-btn sp-btn2" onclick="showChatView()">Back to chat</button>
+            </div>
+            <div class="image-view-scroll" id="imageScroll">
+                <div class="image-view-inner">
+                    <div class="image-result-card" id="imageResultCard" style="display:none">
+                        <div class="image-result-head"><span>Latest generation</span><div class="img-actions" style="position:static"><button class="img-act" onclick="openImage()" title="Open image">↗</button><button class="img-act" onclick="downloadImage()" title="Download image">↓</button></div></div>
+                        <div class="image-result-body">
+                            <div class="img-loading" id="imgLoading"><div class="spinner"></div><div>Generating image...</div></div>
+                            <div class="img-preview" id="imgPreview"><img id="imgResult" alt="Generated image"></div>
+                        </div>
+                        <div class="image-prompt"><span>Prompt</span><p id="imagePromptText"></p></div>
+                    </div>
+                    <div class="image-history-section">
+                        <div class="image-history-head">
+                            <div><span class="image-history-title">Generation history</span><span class="image-history-count" id="imageHistoryCount"></span></div>
+                            <button class="sp-btn sp-btn2" onclick="clearImageHistory()">Clear history</button>
+                        </div>
+                        <div class="image-gallery" id="imgHistory"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="image-input-wrap">
+                <div class="image-input-box">
+                    <textarea id="imgPrompt" placeholder="Describe the image you want to create..." rows="2"></textarea>
+                    <button class="send" id="imgGenerateBtn" onclick="generateImage()" title="Generate image"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></button>
+                </div>
+                <div class="inp-hint">Enter to generate · Shift+Enter for a new line</div>
             </div>
         </div>
 
@@ -360,6 +460,9 @@
     let chats=JSON.parse(localStorage.getItem('c_chats')||'[]');
     let folders=JSON.parse(localStorage.getItem('c_folders')||'[]');
     let active=null, gen=false, abort=null, files=[], sIdx=-1;
+    let imageHistory=[];
+    try{imageHistory=JSON.parse(localStorage.getItem('c_image_history')||'[]')}catch{imageHistory=[]}
+    let currentImageUrl='', imgGenerating=false;
     let light=localStorage.getItem('c_theme')==='light', wsOn=false;
     let ctxTarget=null;
     const MODELS=[
@@ -386,8 +489,12 @@
     const inp=$('inp');
     inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}});
     inp.addEventListener('input',()=>{inp.style.height='auto';inp.style.height=Math.min(inp.scrollHeight,100)+'px'});
+    const imgPrompt=$('imgPrompt');
+    imgPrompt.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();generateImage()}});
+    imgPrompt.addEventListener('input',()=>{imgPrompt.style.height='auto';imgPrompt.style.height=Math.min(imgPrompt.scrollHeight,140)+'px'});
     $('srvIn').value=srv;$('sysIn').value=sys;
-    renderList();renderFolders();connect();
+    showChatView();
+    renderList();renderFolders();renderImageHistory();connect();
 
     document.addEventListener('keydown',e=>{
         if(e.ctrlKey&&e.key==='b'){e.preventDefault();toggleSidebar()}
@@ -406,7 +513,7 @@
         if(r.ok){d.className='dot ok';t.textContent=srv.replace(/https?:\/\//,'')}else throw 0}catch{d.className='dot err';t.textContent='Unreachable'}
     }
 
-    function newChat(){active={id:Date.now(),title:'New chat',messages:[],folderId:null};chats.unshift(active);save();renderList();renderMsgs();inp.focus()}
+    function newChat(){showChatView(false);active={id:Date.now(),title:'New chat',messages:[],folderId:null};chats.unshift(active);save();renderList();renderMsgs();inp.focus()}
     function delChat(id,e){e?.stopPropagation();chats=chats.filter(c=>c.id!==id);if(active?.id===id)active=null;save();renderList();renderMsgs()}
 
     function renderList(){
@@ -472,12 +579,28 @@
     function moveChatToFolder(chatId,folderId){const ch=chats.find(c=>c.id===chatId);if(ch)ch.folderId=folderId;save();renderList();renderFolders();$('ctxMenu').classList.remove('show')}
 
     function togglePanel(id){
-        const panels=['settings','folder','share','imgGen'];
+        const panels=['settings','folder','share'];
         const el=$(id+'Panel');
         if(!el)return;
         const isOpen=el.classList.contains('open');
         panels.forEach(p=>{const e=$(p+'Panel');if(e)e.classList.remove('open')});
         if(!isOpen)el.classList.add('open');
+    }
+    function showImageView(focus=true){
+        $('main').classList.add('image-mode');
+        $('imageView').classList.add('on');
+        $('chatViewBtn').classList.remove('on');
+        $('imageViewBtn').classList.add('on');
+        if(window.innerWidth<=768)$('sidebar').classList.remove('open');
+        if(focus)$('imgPrompt').focus();
+    }
+    function showChatView(focus=true){
+        $('main').classList.remove('image-mode');
+        $('imageView').classList.remove('on');
+        $('chatViewBtn').classList.add('on');
+        $('imageViewBtn').classList.remove('on');
+        if(window.innerWidth<=768)$('sidebar').classList.remove('open');
+        if(focus)$('inp').focus();
     }
     function toggleTheme(){light=!light;localStorage.setItem('c_theme',light?'light':'dark');document.body.classList.toggle('light',light);$('themeSw').classList.toggle('on',!light)}
 
@@ -590,7 +713,7 @@
         a.scrollTop=a.scrollHeight;
     }
 
-    function qa(q){inp.value=q;send()}
+    function qa(q){showChatView(false);inp.value=q;send()}
     function regen(idx){if(!active||gen)return;const um=active.messages.slice(0,idx+1).reverse().find(m=>m.role==='user');if(um){active.messages=active.messages.slice(0,idx);save();renderMsgs();inp.value=um.content;send()}}
     function editMsg(idx){const eb=document.querySelector(`[data-i="${idx}"] .edit-box`);if(eb){eb.classList.toggle('on');eb.querySelector('textarea').value=active.messages[idx].content}}
     function saveEdit(idx){const eb=document.querySelector(`[data-i="${idx}"] .edit-box`);const nc=eb.querySelector('textarea').value.trim();if(!nc)return;active.messages[idx]={...active.messages[idx],content:nc};active.messages=active.messages.slice(0,idx+1);save();renderMsgs();inp.value=nc;send()}
@@ -655,18 +778,108 @@
     function cpMsg(b){const t=b.closest('.mc').querySelector('.mb');navigator.clipboard.writeText(t.textContent);b.innerHTML='✓ Copied';setTimeout(()=>b.innerHTML='Copy',1200)}
     function toggleSidebar(){const s=$('sidebar');window.innerWidth<=768?s.classList.toggle('open'):s.classList.toggle('collapsed')}
     function saveSett(){srv=$('srvIn').value.trim().replace(/\/$/,'')||DEF;sys=$('sysIn').value.trim();localStorage.setItem('c_srv',srv);localStorage.setItem('c_sys',sys);connect()}
-    function clearAll(){if(!confirm('Delete all?'))return;chats=[];folders=[];active=null;localStorage.removeItem('c_chats');localStorage.removeItem('c_folders');save();saveFolders();renderList();renderFolders();renderMsgs()}
+    function clearAll(){if(!confirm('Delete all?'))return;chats=[];folders=[];active=null;imageHistory=[];currentImageUrl='';localStorage.removeItem('c_chats');localStorage.removeItem('c_folders');localStorage.removeItem('c_image_history');save();saveFolders();renderList();renderFolders();renderMsgs();renderImageHistory()}
     function toggleWS(){wsOn=!wsOn;$('wsBtn').classList.toggle('on',wsOn)}
 
     async function generateImage(){
-        const prompt=$('imgPrompt').value.trim();if(!prompt)return;
-        const prev=$('imgPreview');prev.style.display='none';
+        const prompt=$('imgPrompt').value.trim();
+        if(!prompt||imgGenerating)return;
+        const btn=$('imgGenerateBtn'), prev=$('imgPreview'), loading=$('imgLoading'), result=$('imgResult'), card=$('imageResultCard'), promptText=$('imagePromptText');
+        imgGenerating=true;
+        btn.disabled=true;
+        btn.textContent='Generating...';
+        card.style.display='block';
+        promptText.textContent=prompt;
+        prev.style.display='none';
+        loading.classList.add('on');
+        result.removeAttribute('src');
+        currentImageUrl='';
+        $('imageScroll').scrollTop=0;
         try{
             const r=await fetch(srv+'/generate-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});
-            const d=await r.json();
-            if(d.url){$('imgResult').src=d.url;prev.style.display='block'}
-            else alert(d.error||'Failed to generate image');
-        }catch(e){alert('Error: '+e.message)}
+            if(!r.ok)throw new Error('HTTP '+r.status);
+            const d=await r.json().catch(()=>({}));
+            if(!d.url)throw new Error(d.error||'Failed to generate image');
+            await new Promise((resolve,reject)=>{
+                const img=new Image();
+                img.onload=()=>resolve();
+                img.onerror=()=>reject(new Error('Failed to load generated image'));
+                img.src=d.url;
+            });
+            currentImageUrl=d.url;
+            result.src=d.url;
+            prev.style.display='block';
+            $('imgPrompt').value='';
+            $('imgPrompt').style.height='auto';
+            imageHistory.unshift({id:Date.now().toString()+Math.random().toString(16).slice(2),url:d.url,prompt,createdAt:Date.now()});
+            imageHistory=imageHistory.slice(0,30);
+            saveImageHistory();
+            renderImageHistory();
+        }catch(e){
+            alert(e.message||'Failed to generate image');
+        }finally{
+            loading.classList.remove('on');
+            btn.disabled=false;
+            btn.textContent='Generate Image';
+            imgGenerating=false;
+        }
+    }
+
+    function saveImageHistory(){localStorage.setItem('c_image_history',JSON.stringify(imageHistory))}
+    function renderImageHistory(){
+        const c=$('imgHistory');
+        c.innerHTML='';
+        $('imageHistoryCount').textContent=imageHistory.length?imageHistory.length+(imageHistory.length===1?' image':' images'):'';
+        if(!imageHistory.length){c.innerHTML='<div class="img-history-empty">No images generated yet.</div>';return}
+        imageHistory.forEach(item=>{
+            const d=document.createElement('div');
+            d.className='img-hist-item'+(currentImageUrl===item.url?' active':'');
+            d.onclick=()=>showImageHistoryItem(item);
+            const img=document.createElement('img');
+            img.src=item.url;
+            img.alt=item.prompt;
+            img.loading='lazy';
+            const info=document.createElement('div');
+            info.className='img-hist-info';
+            const p=document.createElement('div');
+            p.className='p';
+            p.textContent=item.prompt;
+            const date=document.createElement('div');
+            date.className='d';
+            date.textContent=new Date(item.createdAt).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+            info.appendChild(p);info.appendChild(date);d.appendChild(img);d.appendChild(info);c.appendChild(d);
+        });
+    }
+    function showImageHistoryItem(item){
+        currentImageUrl=item.url;
+        $('imageResultCard').style.display='block';
+        $('imagePromptText').textContent=item.prompt;
+        $('imgResult').src=item.url;
+        $('imgPreview').style.display='block';
+        $('imgLoading').classList.remove('on');
+        $('imageScroll').scrollTop=0;
+        renderImageHistory();
+    }
+    function openImage(){if(currentImageUrl)window.open(currentImageUrl,'_blank','noopener')}
+    function downloadImage(){
+        if(!currentImageUrl)return;
+        const a=document.createElement('a');
+        a.href=currentImageUrl;
+        a.download='calyth-image-'+Date.now()+'.png';
+        a.target='_blank';
+        a.rel='noopener';
+        a.click();
+    }
+    function clearImageHistory(){
+        if(!imageHistory.length)return;
+        if(!confirm('Clear image generation history?'))return;
+        imageHistory=[];
+        currentImageUrl='';
+        $('imageResultCard').style.display='none';
+        $('imgResult').removeAttribute('src');
+        $('imagePromptText').textContent='';
+        localStorage.removeItem('c_image_history');
+        renderImageHistory();
     }
 
     function exportChat(type){
