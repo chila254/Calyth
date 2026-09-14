@@ -15,12 +15,16 @@ import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import io.ktor.utils.io.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
+import java.io.BufferedReader
 import java.io.File
+import java.io.InputStreamReader
+import java.net.HttpURLConnection
+import java.net.URL
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -68,7 +72,7 @@ val availableModels = listOf(
 // ── DTOs ──────────────────────────────────────────────────────────────
 
 @Serializable
-data class ChatRequest(val model: String = "openai/gpt-oss-20b", val message: String, val system: String? = null, val stream: Boolean = false)
+data class ChatRequest(val model: String = "openai/gpt-oss-20b", val message: String, val system: String? = null)
 
 @Serializable
 data class ChatRequestWithHistory(val model: String = "openai/gpt-oss-20b", val message: String, val history: List<Message> = emptyList(), val system: String? = null)
@@ -104,7 +108,6 @@ data class Delta(val role: String? = null, val content: String? = null)
 // ── Sharing ───────────────────────────────────────────────────────────
 
 @Serializable data class SharedChat(val id: String, val title: String, val messages: List<Message>, val createdAt: Long)
-
 @Serializable data class VisionRequest(val model: String, val message: String, val imageBase64: String? = null)
 
 val sharedChats = ConcurrentHashMap<String, SharedChat>()
@@ -161,24 +164,34 @@ fun Application.module() {
             call.respondText(reply)
         }
 
-        // ── Streaming chat (chunked transfer) ─────────────────────────
+        // ── Streaming chat (chunked via raw HTTP) ─────────────────────
         post("/chat/stream") {
             val req = call.receive<ChatRequest>()
-
             if (req.model.startsWith("gemini")) {
-                val reply = callGemini(client, geminiKey, req.model, req.system, req.message)
-                call.respondText(reply)
+                call.respondText(callGemini(client, geminiKey, req.model, req.system, req.message))
                 return@post
             }
             if (groqKey.isBlank()) { call.respondText("Error: GROQ_API_KEY not configured"); return@post }
 
-            val msgs = buildMessages(req.system, req.message)
-            val groqReq = GroqRequest(model = req.model, messages = msgs, stream = true)
+            call.response.contentType(ContentType.Text.EventStream.withCharset(Charsets.UTF_8))
+            call.response.header(HttpHeaders.CacheControl, "no-cache")
+            call.response.header(HttpHeaders.Connection, "keep-alive")
 
-            call.response.contentType(ContentType.Text.EventStream)
-            call.response.cacheControl(CacheControl.NoCache(CacheControl.NoCache(true)))
+            val channel = io.ktor.utils.io.ByteReadChannel(ByteArray(0))
+            call.respond(channel)
 
-            call.respondSseGroq(client, groqKey, groqReq)
+            withContext(Dispatchers.IO) {
+                streamGroqResponse(groqKey, req.model, req.system, req.message) { token ->
+                    try {
+                        val json = Json.encodeToString(kotlinx.serialization.json.JsonElement.serializer(), JsonPrimitive(token))
+                        channel.writeFully("data: $json\n\n".toByteArray())
+                    } catch (_: Exception) {}
+                }
+                try {
+                    channel.writeFully("data: [DONE]\n\n".toByteArray())
+                    channel.close()
+                } catch (_: Exception) {}
+            }
         }
 
         // ── Web search ────────────────────────────────────────────────
@@ -204,12 +217,10 @@ fun Application.module() {
             sharedChats[id] = req.copy(id = id)
             call.respond(mapOf("id" to id, "url" to "/shared/$id"))
         }
-
         get("/shared/{id}") {
             val chat = sharedChats[call.parameters["id"] ?: ""]
             if (chat != null) call.respond(chat) else call.respondText("Not found", status = HttpStatusCode.NotFound)
         }
-
         get("/shared/{id}/html") {
             val chat = sharedChats[call.parameters["id"] ?: ""]
             if (chat != null) {
@@ -226,7 +237,7 @@ fun Application.module() {
                         val name = if (m.role == "user") "You" else "Calyth"
                         append("<div class='msg $cls'><strong>$name</strong><br>${m.content.replace("\n","<br>")}</div>")
                     }
-                    append("<p style='text-align:center;color:#71717a;margin-top:40px'>Shared via Calyth ⚡</p>")
+                    append("<p style='text-align:center;color:#71717a;margin-top:40px'>Shared via Calyth</p>")
                     append("</body></html>")
                 }
                 call.respondText(html, ContentType.Text.Html)
@@ -244,69 +255,55 @@ fun buildMessages(system: String?, message: String): List<Message> {
     return msgs
 }
 
-fun String.jsonEscape(): String = this.replace("\\", "\\\\").replace("\"", "\\\"")
-    .replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
+// ── Streaming via raw HTTP (works with Ktor 2.3.5) ────────────────────
 
-// ── Chunked SSE streaming response ────────────────────────────────────
+private fun streamGroqResponse(apiKey: String, model: String, system: String?, message: String, onToken: (String) -> Unit) {
+    val msgs = buildMessages(system, message)
+    val bodyJson = buildString {
+        append("{")
+        append("\"model\":\"$model\",")
+        append("\"stream\":true,")
+        append("\"messages\":[")
+        msgs.forEachIndexed { i, m ->
+            if (i > 0) append(",")
+            append("{\"role\":\"${m.role}\",\"content\":\"${m.content.jsonEscape()}\"}")
+        }
+        append("]")
+        append("}")
+    }
 
-suspend fun io.ktor.server.routing.RoutingCall.respondSseGroq(
-    client: HttpClient,
-    apiKey: String,
-    request: GroqRequest
-) {
-    val channel = ByteReadChannel(1024)
-    response.respond(channel)
+    val url = URL("https://api.groq.com/openai/v1/chat/completions")
+    val conn = url.openConnection() as HttpURLConnection
+    conn.requestMethod = "POST"
+    conn.setRequestProperty("Authorization", "Bearer $apiKey")
+    conn.setRequestProperty("Content-Type", "application/json")
+    conn.doOutput = true
+    conn.connectTimeout = 30_000
+    conn.readTimeout = 120_000
 
-    withContext(Dispatchers.IO) {
-        try {
-            client.preparePost("https://api.groq.com/openai/v1/chat/completions") {
-                header("Authorization", "Bearer $apiKey")
-                contentType(ContentType.Application.Json)
-                setBody(request)
-            }.execute { response ->
-                val body = response.body<io.ktor.utils.io.core.Input>()
-                val sb = StringBuilder()
-                while (body.endOfInput.not()) {
-                    val byte = body.readByte().toInt().toChar()
-                    sb.append(byte)
-                    if (byte == '\n') {
-                        val line = sb.toString().trim()
-                        sb.clear()
-                        if (line.startsWith("data: ")) {
-                            val data = line.removePrefix("data: ").trim()
-                            if (data == "[DONE]") {
-                                channel.writeFully("data: [DONE]\n\n".toByteArray())
-                                channel.close()
-                                return@execute
-                            }
-                            try {
-                                val chunk = Json { ignoreUnknownKeys = true; isLenient = true }
-                                    .decodeFromString<StreamChunk>(data)
-                                val content = chunk.choices.firstOrNull()?.delta?.content
-                                if (content != null) {
-                                    channel.writeFully("data: ${Json.encodeToString(kotlinx.serialization.json.JsonElement.serializer(), kotlinx.serialization.json.JsonPrimitive(content))}\n\n".toByteArray())
-                                }
-                                if (chunk.choices.firstOrNull()?.finish_reason != null) {
-                                    channel.writeFully("data: [DONE]\n\n".toByteArray())
-                                    channel.close()
-                                    return@execute
-                                }
-                            } catch (_: Exception) {}
-                        }
-                    }
-                }
-                channel.writeFully("data: [DONE]\n\n".toByteArray())
-                channel.close()
-            }
-        } catch (e: Exception) {
+    conn.outputStream.use { it.write(bodyJson.toByteArray()) }
+
+    val reader = BufferedReader(InputStreamReader(conn.inputStream))
+    var line: String?
+    while (reader.readLine().also { line = it } != null) {
+        val l = line ?: continue
+        if (l.startsWith("data: ")) {
+            val data = l.removePrefix("data: ").trim()
+            if (data == "[DONE]") break
             try {
-                channel.writeFully("data: ${Json.encodeToString(kotlinx.serialization.json.JsonElement.serializer(), kotlinx.serialization.json.JsonPrimitive("Error: ${e.message}"))}\n\n".toByteArray())
-                channel.writeFully("data: [DONE]\n\n".toByteArray())
-                channel.close()
+                val chunk = Json { ignoreUnknownKeys = true; isLenient = true }
+                    .decodeFromString<StreamChunk>(data)
+                val content = chunk.choices.firstOrNull()?.delta?.content
+                if (content != null) onToken(content)
+                if (chunk.choices.firstOrNull()?.finish_reason != null) break
             } catch (_: Exception) {}
         }
     }
+    conn.disconnect()
 }
+
+fun String.jsonEscape(): String = this.replace("\\", "\\\\").replace("\"", "\\\"")
+    .replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
 
 // ── Provider calls ────────────────────────────────────────────────────
 
