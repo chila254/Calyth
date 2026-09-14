@@ -4,26 +4,26 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Color(0xFF4A6FA5),
+private val DarkColors = darkColorScheme(
+    primary = Color(0xFF6366f1),
     onPrimary = Color.White,
-    primaryContainer = Color(0xFF1a365d),
-    secondary = Color(0xFF16213e),
-    onSecondary = Color(0xFFe0e0e0),
-    background = Color(0xFF0f0f0f),
-    onBackground = Color(0xFFe0e0e0),
-    surface = Color(0xFF1a1a2e),
-    onSurface = Color(0xFFe0e0e0),
-    surfaceVariant = Color(0xFF1e293b),
-    onSurfaceVariant = Color(0xFFe2e8f0),
-    error = Color(0xFFfca5a5),
-    onError = Color(0xFF3b1a1a)
+    primaryContainer = Color(0xFF4338ca),
+    secondary = Color(0xFF1e1e2e),
+    onSecondary = Color(0xFFe4e4e7),
+    background = Color(0xFF09090b),
+    onBackground = Color(0xFFfafafa),
+    surface = Color(0xFF18181b),
+    onSurface = Color(0xFFfafafa),
+    surfaceVariant = Color(0xFF27272a),
+    onSurfaceVariant = Color(0xFFa1a1aa),
+    error = Color(0xFFef4444),
+    onError = Color.White
 )
 
 @Composable
 fun CalythTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = DarkColorScheme,
+        colorScheme = DarkColors,
         content = content
     )
 }

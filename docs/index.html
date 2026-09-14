@@ -4,261 +4,824 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calyth — AI Assistant</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg-primary: #09090b;
+            --bg-secondary: #18181b;
+            --bg-tertiary: #27272a;
+            --bg-hover: #3f3f46;
+            --text-primary: #fafafa;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            --border: #27272a;
+            --accent: #6366f1;
+            --accent-hover: #818cf8;
+            --accent-glow: rgba(99, 102, 241, 0.15);
+            --user-bubble: #6366f1;
+            --assistant-bubble: #1e1e2e;
+            --error-bubble: #450a0a;
+            --success: #22c55e;
+            --warning: #eab308;
+            --radius: 16px;
+            --radius-sm: 10px;
+            --shadow: 0 4px 24px rgba(0,0,0,0.4);
+            --font: 'Inter', -apple-system, sans-serif;
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f0f0f; color: #e0e0e0; height: 100vh; display: flex; flex-direction: column; }
 
-        header { background: #1a1a2e; padding: 16px 24px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #2a2a3e; flex-wrap: wrap; }
-        header h1 { font-size: 20px; font-weight: 600; color: #fff; }
-        header .subtitle { font-size: 13px; color: #888; }
-
-        .model-selector { display: flex; align-items: center; gap: 10px; margin-left: auto; }
-        .model-selector label { font-size: 13px; color: #aaa; }
-        .model-selector select {
-            background: #16213e; color: #e0e0e0; border: 1px solid #2a2a3e;
-            padding: 8px 12px; border-radius: 8px; font-size: 13px; cursor: pointer;
-            outline: none; min-width: 200px;
+        body {
+            font-family: var(--font);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
         }
-        .model-selector select:focus { border-color: #4a6fa5; }
 
-        .server-bar { padding: 8px 24px; background: #12122a; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #1a1a2e; }
-        .server-bar input {
-            flex: 1; background: #16213e; color: #e0e0e0; border: 1px solid #2a2a3e;
-            padding: 6px 10px; border-radius: 6px; font-size: 12px; outline: none;
+        /* ── Sidebar ────────────────────────────────────────── */
+        .sidebar {
+            width: 280px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+            z-index: 100;
         }
-        .server-bar input:focus { border-color: #4a6fa5; }
-        .server-bar button {
-            background: #4a6fa5; color: #fff; border: none; padding: 6px 12px;
-            border-radius: 6px; font-size: 12px; cursor: pointer;
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
         }
-        .server-bar .status { font-size: 11px; padding: 2px 8px; border-radius: 4px; }
-        .status-ok { background: #1a3a1a; color: #86efac; }
-        .status-err { background: #3b1a1a; color: #fca5a5; }
-        .status-pending { background: #3b3b1a; color: #fde68a; }
-
-        .chat-container { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
-
-        .message { max-width: 75%; padding: 12px 16px; border-radius: 12px; line-height: 1.5; font-size: 14px; word-wrap: break-word; }
-        .message.user { align-self: flex-end; background: #1a365d; color: #e2e8f0; border-bottom-right-radius: 4px; }
-        .message.assistant { align-self: flex-start; background: #1e293b; color: #e2e8f0; border-bottom-left-radius: 4px; }
-        .message.error { align-self: flex-start; background: #3b1a1a; color: #fca5a5; border-bottom-left-radius: 4px; }
-
-        .message pre { background: #0d1117; padding: 12px; border-radius: 6px; overflow-x: auto; margin: 8px 0; font-size: 13px; }
-        .message code { font-family: 'SF Mono', 'Fira Code', monospace; }
-        .message p { margin: 4px 0; }
-
-        .input-area { padding: 16px 24px; background: #1a1a2e; border-top: 1px solid #2a2a3e; display: flex; gap: 12px; align-items: flex-end; }
-        .input-area textarea {
-            flex: 1; background: #16213e; color: #e0e0e0; border: 1px solid #2a2a3e;
-            padding: 12px; border-radius: 10px; font-size: 14px; resize: none;
-            font-family: inherit; outline: none; max-height: 120px; line-height: 1.4;
+        .sidebar-header .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
         }
-        .input-area textarea:focus { border-color: #4a6fa5; }
-        .input-area button {
-            background: #4a6fa5; color: #fff; border: none; padding: 12px 20px;
-            border-radius: 10px; font-size: 14px; cursor: pointer; font-weight: 500;
-            transition: background 0.2s;
+        .sidebar-header .logo span {
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
-        .input-area button:hover { background: #3b5998; }
-        .input-area button:disabled { background: #2a2a3e; cursor: not-allowed; }
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+        .sidebar-section {
+            margin-bottom: 16px;
+        }
+        .sidebar-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            padding: 8px 12px;
+        }
+        .chat-list { list-style: none; }
+        .chat-list li {
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--text-secondary);
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 2px;
+        }
+        .chat-list li:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        .chat-list li.active { background: var(--accent-glow); color: var(--accent-hover); }
+        .chat-list li .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-        .model-badge { display: inline-block; font-size: 11px; padding: 2px 6px; border-radius: 4px; margin-bottom: 6px; font-weight: 500; }
-        .badge-groq { background: #1e3a5f; color: #7dd3fc; }
-        .badge-google { background: #1a3a1a; color: #86efac; }
+        .new-chat-btn {
+            margin: 12px;
+            padding: 10px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-family: var(--font);
+        }
+        .new-chat-btn:hover { background: var(--bg-hover); border-color: var(--text-muted); }
 
-        .welcome { text-align: center; margin: auto; color: #555; }
-        .welcome h2 { font-size: 28px; margin-bottom: 8px; color: #888; }
-        .welcome p { font-size: 14px; color: #555; }
+        .sidebar-footer {
+            padding: 12px;
+            border-top: 1px solid var(--border);
+        }
+        .sidebar-footer .server-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            background: var(--bg-tertiary);
+            font-size: 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .sidebar-footer .server-status:hover { background: var(--bg-hover); }
+        .status-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--text-muted);
+        }
+        .status-dot.connected { background: var(--success); box-shadow: 0 0 8px rgba(34,197,94,0.5); }
+        .status-dot.error { background: #ef4444; }
 
-        .typing { display: inline-flex; gap: 4px; padding: 8px 16px; }
-        .typing span { width: 6px; height: 6px; background: #4a6fa5; border-radius: 50%; animation: bounce 1.4s infinite ease-in-out; }
-        .typing span:nth-child(1) { animation-delay: -0.32s; }
-        .typing span:nth-child(2) { animation-delay: -0.16s; }
-        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+        /* ── Main ───────────────────────────────────────────── */
+        .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 
-        @media (max-width: 600px) {
-            header { padding: 12px 16px; }
-            .model-selector { margin-left: 0; width: 100%; }
-            .chat-container { padding: 16px; }
-            .input-area { padding: 12px 16px; }
-            .message { max-width: 90%; }
+        .topbar {
+            padding: 12px 24px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 20px;
+            cursor: pointer;
+            padding: 4px;
+        }
+        .model-select {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-family: var(--font);
+            cursor: pointer;
+            outline: none;
+            min-width: 200px;
+        }
+        .model-select:focus { border-color: var(--accent); }
+        .topbar-actions { margin-left: auto; display: flex; gap: 8px; }
+        .icon-btn {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            width: 36px; height: 36px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.15s;
+        }
+        .icon-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+        /* ── Chat Area ──────────────────────────────────────── */
+        .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            scroll-behavior: smooth;
+        }
+        .chat-area::-webkit-scrollbar { width: 6px; }
+        .chat-area::-webkit-scrollbar-track { background: transparent; }
+        .chat-area::-webkit-scrollbar-thumb { background: var(--bg-tertiary); border-radius: 3px; }
+
+        .welcome-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+            gap: 16px;
+        }
+        .welcome-icon {
+            width: 72px; height: 72px;
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            margin-bottom: 8px;
+            box-shadow: 0 8px 32px rgba(99,102,241,0.3);
+        }
+        .welcome-screen h2 {
+            font-size: 28px;
+            font-weight: 600;
+            background: linear-gradient(135deg, #fff, #a1a1aa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .welcome-screen p { color: var(--text-muted); font-size: 15px; max-width: 400px; }
+        .quick-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 8px;
+        }
+        .quick-action {
+            padding: 8px 14px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s;
+            font-family: var(--font);
+        }
+        .quick-action:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--text-muted); }
+
+        /* ── Messages ───────────────────────────────────────── */
+        .message-group {
+            display: flex;
+            gap: 12px;
+            max-width: 800px;
+            margin: 0 auto 24px;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        .avatar {
+            width: 32px; height: 32px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        .avatar.user { background: linear-gradient(135deg, #6366f1, #818cf8); color: #fff; }
+        .avatar.assistant { background: var(--bg-tertiary); color: var(--text-secondary); }
+        .avatar.error { background: #450a0a; color: #fca5a5; }
+
+        .msg-content { flex: 1; min-width: 0; }
+        .msg-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+        .msg-name { font-size: 13px; font-weight: 600; }
+        .msg-time { font-size: 11px; color: var(--text-muted); }
+        .model-tag {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        .model-tag.groq { background: rgba(99,102,241,0.15); color: #818cf8; }
+        .model-tag.google { background: rgba(34,197,94,0.15); color: #4ade80; }
+
+        .msg-text {
+            font-size: 14px;
+            line-height: 1.7;
+            color: var(--text-secondary);
+        }
+        .msg-text strong { color: var(--text-primary); }
+        .msg-text code {
+            background: var(--bg-tertiary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+        }
+        .msg-text pre {
+            background: #0d1117;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 16px;
+            overflow-x: auto;
+            margin: 12px 0;
+            position: relative;
+        }
+        .msg-text pre code { background: none; padding: 0; font-size: 13px; }
+        .copy-code {
+            position: absolute;
+            top: 8px; right: 8px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            cursor: pointer;
+            font-family: var(--font);
+            transition: all 0.15s;
+        }
+        .copy-code:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+        /* ── Input Area ─────────────────────────────────────── */
+        .input-wrapper {
+            padding: 0 24px 24px;
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        .input-box {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+            padding: 12px;
+            transition: border-color 0.2s;
+        }
+        .input-box:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+
+        .input-box textarea {
+            flex: 1;
+            background: transparent;
+            color: var(--text-primary);
+            border: none;
+            outline: none;
+            font-size: 14px;
+            font-family: var(--font);
+            resize: none;
+            max-height: 120px;
+            line-height: 1.5;
+            padding: 4px 0;
+        }
+        .input-box textarea::placeholder { color: var(--text-muted); }
+
+        .send-btn {
+            width: 36px; height: 36px;
+            background: var(--accent);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.15s;
+            flex-shrink: 0;
+        }
+        .send-btn:hover { background: var(--accent-hover); transform: scale(1.05); }
+        .send-btn:disabled { background: var(--bg-tertiary); cursor: not-allowed; transform: none; }
+
+        .input-hint {
+            text-align: center;
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        /* ── Typing Indicator ───────────────────────────────── */
+        .typing-dots {
+            display: inline-flex;
+            gap: 4px;
+            padding: 4px 0;
+        }
+        .typing-dots span {
+            width: 6px; height: 6px;
+            background: var(--accent);
+            border-radius: 50%;
+            animation: dotBounce 1.4s infinite ease-in-out;
+        }
+        .typing-dots span:nth-child(2) { animation-delay: 0.16s; }
+        .typing-dots span:nth-child(3) { animation-delay: 0.32s; }
+        @keyframes dotBounce { 0%,80%,100% { transform: scale(0.3); opacity: 0.3; } 40% { transform: scale(1); opacity: 1; } }
+
+        /* ── Settings Modal ─────────────────────────────────── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            width: 90%;
+            max-width: 440px;
+            box-shadow: var(--shadow);
+            animation: modalIn 0.2s ease;
+        }
+        @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } }
+        .modal h3 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+        .modal-field { margin-bottom: 14px; }
+        .modal-field label { display: block; font-size: 12px; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px; }
+        .modal-field input {
+            width: 100%;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-family: var(--font);
+            outline: none;
+        }
+        .modal-field input:focus { border-color: var(--accent); }
+        .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+        .btn {
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            font-family: var(--font);
+            border: 1px solid var(--border);
+            transition: all 0.15s;
+        }
+        .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); }
+        .btn-secondary:hover { background: var(--bg-hover); }
+        .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .btn-primary:hover { background: var(--accent-hover); }
+
+        /* ── Responsive ─────────────────────────────────────── */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                top: 0; left: 0; bottom: 0;
+                transform: translateX(-100%);
+            }
+            .sidebar.open { transform: translateX(0); }
+            .menu-btn { display: flex; }
+            .chat-area { padding: 16px; }
+            .input-wrapper { padding: 0 16px 16px; }
+            .topbar { padding: 12px 16px; }
+            .message-group { gap: 8px; }
+            .model-select { min-width: 140px; font-size: 12px; }
         }
     </style>
 </head>
 <body>
-    <header>
-        <div>
-            <h1>Calyth</h1>
-            <span class="subtitle">AI-Powered Assistant</span>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">⚡ <span>Calyth</span></div>
         </div>
-        <div class="model-selector">
-            <label for="model">Model:</label>
-            <select id="model"></select>
+        <div class="sidebar-content">
+            <button class="new-chat-btn" onclick="newChat()">+ New Chat</button>
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">Recent</div>
+                <ul class="chat-list" id="chatList"></ul>
+            </div>
         </div>
-    </header>
-
-    <div class="server-bar">
-        <input id="serverUrl" type="text" placeholder="Backend URL (e.g. https://calyth.onrender.com)" />
-        <button onclick="connect()">Connect</button>
-        <span id="status" class="status status-pending">disconnected</span>
-    </div>
-
-    <div class="chat-container" id="chat">
-        <div class="welcome">
-            <h2>How can I help you?</h2>
-            <p>Set your backend URL above, choose a model, and start chatting.</p>
+        <div class="sidebar-footer">
+            <div class="server-status" onclick="openSettings()">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">Not connected</span>
+            </div>
         </div>
     </div>
 
-    <div class="input-area">
-        <textarea id="input" placeholder="Type a message..." rows="1"></textarea>
-        <button id="send" onclick="send()">Send</button>
+    <!-- Main -->
+    <div class="main">
+        <div class="topbar">
+            <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+            <select class="model-select" id="modelSelect"></select>
+            <div class="topbar-actions">
+                <button class="icon-btn" onclick="exportChat()" title="Export">↓</button>
+                <button class="icon-btn" onclick="openSettings()" title="Settings">⚙</button>
+            </div>
+        </div>
+
+        <div class="chat-area" id="chatArea">
+            <div class="welcome-screen" id="welcomeScreen">
+                <div class="welcome-icon">⚡</div>
+                <h2>How can I help you?</h2>
+                <p>Choose a model and start a conversation. I can help with coding, writing, analysis, and more.</p>
+                <div class="quick-actions">
+                    <button class="quick-action" onclick="quickAsk('Explain quantum computing in simple terms')">💡 Explain something</button>
+                    <button class="quick-action" onclick="quickAsk('Write a Python function to sort a list')">💻 Write code</button>
+                    <button class="quick-action" onclick="quickAsk('What are the pros and cons of microservices?')">🔍 Compare ideas</button>
+                    <button class="quick-action" onclick="quickAsk('Help me write a professional email')">✉️ Draft an email</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-wrapper">
+            <div class="input-box">
+                <textarea id="input" placeholder="Message Calyth..." rows="1"></textarea>
+                <button class="send-btn" id="sendBtn" onclick="send()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                </button>
+            </div>
+            <div class="input-hint">Press Enter to send, Shift+Enter for new line</div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal">
+            <h3>Settings</h3>
+            <div class="modal-field">
+                <label>Backend URL</label>
+                <input id="serverInput" type="text" placeholder="https://calyth.onrender.com" />
+            </div>
+            <div class="modal-field">
+                <label>System Prompt (optional)</label>
+                <input id="systemPrompt" type="text" placeholder="You are a helpful assistant." />
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeSettings()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveSettings()">Save</button>
+            </div>
+        </div>
     </div>
 
     <script>
-        let selectedModel = 'openai/gpt-oss-20b';
-        let serverUrl = localStorage.getItem('calyth_server') || 'https://calyth.onrender.com';
+    // ── State ──────────────────────────────────────────────
+    const DEFAULT_URL = 'https://calyth.onrender.com';
+    let serverUrl = localStorage.getItem('calyth_server') || DEFAULT_URL;
+    let systemPrompt = localStorage.getItem('calyth_sys_prompt') || '';
+    let conversations = JSON.parse(localStorage.getItem('calyth_chats') || '[]');
+    let activeChat = null;
+    let isGenerating = false;
 
-        const models = [
-            { id: 'openai/gpt-oss-20b', name: 'GPT-OSS 20B', provider: 'groq' },
-            { id: 'openai/gpt-oss-120b', name: 'GPT-OSS 120B', provider: 'groq' },
-            { id: 'qwen/qwen3.6-27b', name: 'Qwen 3.6 27B', provider: 'groq' },
-            { id: 'groq/compound', name: 'Groq Compound', provider: 'groq' },
-            { id: 'groq/compound-mini', name: 'Groq Compound Mini', provider: 'groq' },
-            { id: 'allam-2-7b', name: 'Allam 2 7B', provider: 'groq' },
-            { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', provider: 'google' },
-            { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'google' },
-        ];
+    const models = [
+        { id: 'openai/gpt-oss-20b', name: 'GPT-OSS 20B', provider: 'groq' },
+        { id: 'openai/gpt-oss-120b', name: 'GPT-OSS 120B', provider: 'groq' },
+        { id: 'qwen/qwen3.6-27b', name: 'Qwen 3.6 27B', provider: 'groq' },
+        { id: 'groq/compound', name: 'Groq Compound', provider: 'groq' },
+        { id: 'groq/compound-mini', name: 'Compound Mini', provider: 'groq' },
+        { id: 'allam-2-7b', name: 'Allam 2 7B', provider: 'groq' },
+        { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', provider: 'google' },
+        { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'google' },
+    ];
 
-        const select = document.getElementById('model');
-        models.forEach(m => {
-            const opt = document.createElement('option');
-            opt.value = m.id;
-            opt.textContent = `${m.name} (${m.provider})`;
-            select.appendChild(opt);
-        });
-        select.value = selectedModel;
-        select.onchange = () => { selectedModel = select.value; };
+    let selectedModel = localStorage.getItem('calyth_model') || 'openai/gpt-oss-20b';
 
-        const serverInput = document.getElementById('serverUrl');
-        if (serverUrl) serverInput.value = serverUrl;
+    // ── Init ───────────────────────────────────────────────
+    const sel = document.getElementById('modelSelect');
+    models.forEach(m => {
+        const o = document.createElement('option');
+        o.value = m.id; o.textContent = `${m.name} · ${m.provider}`;
+        sel.appendChild(o);
+    });
+    sel.value = selectedModel;
+    sel.onchange = () => { selectedModel = sel.value; localStorage.setItem('calyth_model', selectedModel); };
 
-        const input = document.getElementById('input');
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
-        });
-        input.addEventListener('input', () => {
-            input.style.height = 'auto';
-            input.style.height = Math.min(input.scrollHeight, 120) + 'px';
-        });
+    const inp = document.getElementById('input');
+    inp.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+    });
+    inp.addEventListener('input', () => {
+        inp.style.height = 'auto';
+        inp.style.height = Math.min(inp.scrollHeight, 120) + 'px';
+    });
 
-        async function connect() {
-            serverUrl = serverInput.value.trim().replace(/\/$/, '');
-            localStorage.setItem('calyth_server', serverUrl);
-            const status = document.getElementById('status');
-            status.className = 'status status-pending';
-            status.textContent = 'connecting...';
+    document.getElementById('serverInput').value = serverUrl;
+    document.getElementById('systemPrompt').value = systemPrompt;
 
-            try {
-                const res = await fetch(`${serverUrl}/health`, { signal: AbortSignal.timeout(5000) });
-                if (res.ok) {
-                    status.className = 'status status-ok';
-                    status.textContent = 'connected';
-                    // Fetch models from server
-                    const modelsRes = await fetch(`${serverUrl}/models`);
-                    if (modelsRes.ok) {
-                        const serverModels = await modelsRes.json();
-                        select.innerHTML = '';
-                        serverModels.forEach(m => {
-                            const opt = document.createElement('option');
-                            opt.value = m.id;
-                            opt.textContent = `${m.name} (${m.provider})`;
-                            select.appendChild(opt);
-                        });
-                        selectedModel = serverModels[0]?.id || 'openai/gpt-oss-20b';
-                        select.value = selectedModel;
-                    }
-                } else {
-                    status.className = 'status status-err';
-                    status.textContent = 'error';
-                }
-            } catch (e) {
-                status.className = 'status status-err';
-                status.textContent = 'unreachable';
-            }
+    renderChatList();
+    connect();
+
+    // ── API ────────────────────────────────────────────────
+    async function connect() {
+        const dot = document.getElementById('statusDot');
+        const txt = document.getElementById('statusText');
+        dot.className = 'status-dot';
+        txt.textContent = 'Connecting...';
+        try {
+            const r = await fetch(`${serverUrl}/health`, { signal: AbortSignal.timeout(5000) });
+            if (r.ok) {
+                dot.className = 'status-dot connected';
+                txt.textContent = serverUrl.replace('https://', '').replace('http://', '');
+            } else throw new Error();
+        } catch {
+            dot.className = 'status-dot error';
+            txt.textContent = 'Unreachable';
         }
+    }
 
-        function addMessage(role, content, model) {
-            const chat = document.getElementById('chat');
-            const welcome = chat.querySelector('.welcome');
-            if (welcome) welcome.remove();
+    async function chat(message) {
+        const body = { model: selectedModel, message };
+        if (systemPrompt) body.system = systemPrompt;
+        const r = await fetch(`${serverUrl}/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        return await r.text();
+    }
 
-            const div = document.createElement('div');
-            div.className = `message ${role}`;
+    // ── Conversations ──────────────────────────────────────
+    function newChat() {
+        activeChat = { id: Date.now(), title: 'New chat', messages: [], model: selectedModel };
+        conversations.unshift(activeChat);
+        saveChats();
+        renderChatList();
+        renderMessages();
+        inp.focus();
+    }
 
-            if (role === 'assistant' && model) {
-                const provider = models.find(m => m.id === model)?.provider || '';
-                const badgeClass = provider === 'groq' ? 'badge-groq' : 'badge-google';
-                div.innerHTML = `<span class="model-badge ${badgeClass}">${model}</span><div>${formatText(content)}</div>`;
+    function saveChats() {
+        localStorage.setItem('calyth_chats', JSON.stringify(conversations));
+    }
+
+    function renderChatList() {
+        const ul = document.getElementById('chatList');
+        ul.innerHTML = '';
+        conversations.forEach(c => {
+            const li = document.createElement('li');
+            li.className = activeChat?.id === c.id ? 'active' : '';
+            li.innerHTML = `<span>💬</span><span class="truncate">${esc(c.title)}</span>`;
+            li.onclick = () => { activeChat = c; renderChatList(); renderMessages(); };
+            ul.appendChild(li);
+        });
+    }
+
+    function renderMessages() {
+        const area = document.getElementById('chatArea');
+        const welcome = document.getElementById('welcomeScreen');
+        if (!activeChat || activeChat.messages.length === 0) {
+            area.innerHTML = '';
+            area.appendChild(welcome);
+            welcome.style.display = '';
+            return;
+        }
+        welcome.style.display = 'none';
+        area.innerHTML = '';
+        activeChat.messages.forEach(m => appendMsg(m.role, m.content, m.model, false));
+        area.scrollTop = area.scrollHeight;
+    }
+
+    // ── Send ───────────────────────────────────────────────
+    async function send() {
+        const msg = inp.value.trim();
+        if (!msg || isGenerating) return;
+        inp.value = ''; inp.style.height = 'auto';
+
+        if (!activeChat) newChat();
+        activeChat.title = msg.slice(0, 40) + (msg.length > 40 ? '...' : '');
+        renderChatList();
+
+        const welcome = document.getElementById('welcomeScreen');
+        if (welcome) welcome.style.display = 'none';
+
+        appendMsg('user', msg, null, true);
+        activeChat.messages.push({ role: 'user', content: msg });
+
+        const typingId = showTyping();
+        isGenerating = true;
+        document.getElementById('sendBtn').disabled = true;
+
+        try {
+            const reply = await chat(msg);
+            removeTyping(typingId);
+            if (reply.startsWith('Error:')) {
+                appendMsg('error', reply, null, true);
+                activeChat.messages.push({ role: 'error', content: reply });
             } else {
-                div.innerHTML = `<div>${formatText(content)}</div>`;
+                appendMsg('assistant', reply, selectedModel, true);
+                activeChat.messages.push({ role: 'assistant', content: reply, model: selectedModel });
             }
-
-            chat.appendChild(div);
-            chat.scrollTop = chat.scrollHeight;
-            return div;
+        } catch (e) {
+            removeTyping(typingId);
+            appendMsg('error', 'Network error: ' + e.message, null, true);
         }
 
-        function formatText(text) {
-            return text
-                .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
-                .replace(/`([^`]+)`/g, '<code>$1</code>')
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\n/g, '<br>');
+        isGenerating = false;
+        document.getElementById('sendBtn').disabled = false;
+        saveChats();
+        inp.focus();
+    }
+
+    function quickAsk(q) {
+        inp.value = q;
+        send();
+    }
+
+    // ── Render ─────────────────────────────────────────────
+    function appendMsg(role, content, model, animate) {
+        const area = document.getElementById('chatArea');
+        const g = document.createElement('div');
+        g.className = 'message-group';
+        if (animate) g.style.animation = 'fadeIn 0.3s ease';
+
+        const avatarClass = role === 'user' ? 'user' : role === 'error' ? 'error' : 'assistant';
+        const avatarIcon = role === 'user' ? '👤' : role === 'error' ? '⚠' : '⚡';
+        const name = role === 'user' ? 'You' : role === 'error' ? 'Error' : 'Calyth';
+        const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        let modelTag = '';
+        if (model) {
+            const p = models.find(m => m.id === model)?.provider || '';
+            modelTag = `<span class="model-tag ${p}">${model}</span>`;
         }
 
-        async function send() {
-            const msg = input.value.trim();
-            if (!msg || !serverUrl) return;
+        g.innerHTML = `
+            <div class="avatar ${avatarClass}">${avatarIcon}</div>
+            <div class="msg-content">
+                <div class="msg-header">
+                    <span class="msg-name">${name}</span>
+                    ${modelTag}
+                    <span class="msg-time">${time}</span>
+                </div>
+                <div class="msg-text">${formatMsg(content)}</div>
+            </div>
+        `;
+        area.appendChild(g);
+        area.scrollTop = area.scrollHeight;
+    }
 
-            input.value = '';
-            input.style.height = 'auto';
-            document.getElementById('send').disabled = true;
+    function showTyping() {
+        const area = document.getElementById('chatArea');
+        const g = document.createElement('div');
+        g.className = 'message-group';
+        g.id = 'typing-' + Date.now();
+        g.innerHTML = `
+            <div class="avatar assistant">⚡</div>
+            <div class="msg-content">
+                <div class="msg-header"><span class="msg-name">Calyth</span></div>
+                <div class="typing-dots"><span></span><span></span><span></span></div>
+            </div>
+        `;
+        area.appendChild(g);
+        area.scrollTop = area.scrollHeight;
+        return g.id;
+    }
 
-            addMessage('user', msg);
+    function removeTyping(id) {
+        document.getElementById(id)?.remove();
+    }
 
-            const typingDiv = document.createElement('div');
-            typingDiv.className = 'message assistant';
-            typingDiv.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
-            document.getElementById('chat').appendChild(typingDiv);
-            document.getElementById('chat').scrollTop = document.getElementById('chat').scrollHeight;
+    function formatMsg(text) {
+        return text
+            .replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) =>
+                `<pre><code class="lang-${lang}">${esc(code.trim())}</code><button class="copy-code" onclick="copyCode(this)">Copy</button></pre>`)
+            .replace(/`([^`]+)`/g, '<code>$1</code>')
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/\n/g, '<br>');
+    }
 
-            try {
-                const res = await fetch(`${serverUrl}/chat`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ model: selectedModel, message: msg })
-                });
-                const reply = await res.text();
-                typingDiv.remove();
+    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
-                if (reply.startsWith('Error:')) {
-                    addMessage('error', reply);
-                } else {
-                    addMessage('assistant', reply, selectedModel);
-                }
-            } catch (err) {
-                typingDiv.remove();
-                addMessage('error', 'Network error: ' + err.message);
-            }
+    // ── Utils ──────────────────────────────────────────────
+    function copyCode(btn) {
+        const code = btn.parentElement.querySelector('code');
+        navigator.clipboard.writeText(code.textContent);
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy', 2000);
+    }
 
-            document.getElementById('send').disabled = false;
-            input.focus();
-        }
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('open');
+    }
 
-        // Auto-connect if URL saved
-        if (serverUrl) connect();
+    function openSettings() {
+        document.getElementById('settingsModal').classList.add('active');
+    }
+    function closeSettings() {
+        document.getElementById('settingsModal').classList.remove('active');
+    }
+    function saveSettings() {
+        serverUrl = document.getElementById('serverInput').value.trim().replace(/\/$/, '') || DEFAULT_URL;
+        systemPrompt = document.getElementById('systemPrompt').value.trim();
+        localStorage.setItem('calyth_server', serverUrl);
+        localStorage.setItem('calyth_sys_prompt', systemPrompt);
+        closeSettings();
+        connect();
+    }
+
+    function exportChat() {
+        if (!activeChat) return;
+        const text = activeChat.messages.map(m =>
+            `${m.role === 'user' ? 'You' : 'Calyth'}: ${m.content}`
+        ).join('\n\n');
+        const blob = new Blob([text], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `calyth-chat-${Date.now()}.txt`;
+        a.click();
+    }
     </script>
 </body>
 </html>

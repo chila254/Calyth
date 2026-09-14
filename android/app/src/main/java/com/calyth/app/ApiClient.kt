@@ -20,7 +20,7 @@ object ApiClient {
 
     private val JSON_MEDIA = "application/json".toMediaType()
 
-    private var baseUrl = BuildConfig.API_BASE_URL
+    private var baseUrl = "https://calyth.onrender.com"
 
     fun setServerUrl(url: String) {
         baseUrl = url.trimEnd('/')
