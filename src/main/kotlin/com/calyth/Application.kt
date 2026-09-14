@@ -15,11 +15,8 @@ import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonPrimitive
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
@@ -53,8 +50,6 @@ fun main() {
     embeddedServer(Netty, port = port) { module() }.start(wait = true)
 }
 
-// ── Models ────────────────────────────────────────────────────────────
-
 @Serializable
 data class ModelInfo(val id: String, val name: String, val provider: String, val description: String)
 
@@ -69,35 +64,15 @@ val availableModels = listOf(
     ModelInfo("gemini-1.5-pro", "Gemini 1.5 Pro", "Google", "High quality (needs GEMINI_API_KEY)")
 )
 
-// ── DTOs ──────────────────────────────────────────────────────────────
-
-@Serializable
-data class ChatRequest(val model: String = "openai/gpt-oss-20b", val message: String, val system: String? = null)
-
-@Serializable
-data class ChatRequestWithHistory(val model: String = "openai/gpt-oss-20b", val message: String, val history: List<Message> = emptyList(), val system: String? = null)
-
-@Serializable
-data class GroqRequest(val model: String, val messages: List<Message>, val stream: Boolean = false)
-
-@Serializable
-data class Message(val role: String, val content: String)
-
-@Serializable
-data class GroqResponse(val choices: List<Choice> = emptyList(), val error: GroqError? = null)
-
-@Serializable
-data class GroqError(val message: String? = null, val code: String? = null)
-
-@Serializable
-data class Choice(val message: Message? = null, val delta: Delta? = null, val finish_reason: String? = null)
-
-@Serializable
-data class Delta(val role: String? = null, val content: String? = null)
-
+@Serializable data class ChatRequest(val model: String = "openai/gpt-oss-20b", val message: String, val system: String? = null)
+@Serializable data class ChatRequestWithHistory(val model: String = "openai/gpt-oss-20b", val message: String, val history: List<Message> = emptyList(), val system: String? = null)
+@Serializable data class GroqRequest(val model: String, val messages: List<Message>, val stream: Boolean = false)
+@Serializable data class Message(val role: String, val content: String)
+@Serializable data class GroqResponse(val choices: List<Choice> = emptyList(), val error: GroqError? = null)
+@Serializable data class GroqError(val message: String? = null, val code: String? = null)
+@Serializable data class Choice(val message: Message? = null, val delta: Delta? = null, val finish_reason: String? = null)
+@Serializable data class Delta(val role: String? = null, val content: String? = null)
 @Serializable data class StreamChunk(val choices: List<Choice> = emptyList())
-
-// ── Gemini DTOs ───────────────────────────────────────────────────────
 
 @Serializable data class GeminiRequest(val contents: List<Content>)
 @Serializable data class Content(val parts: List<Part>)
@@ -105,14 +80,10 @@ data class Delta(val role: String? = null, val content: String? = null)
 @Serializable data class GeminiResponse(val candidates: List<Candidate> = emptyList())
 @Serializable data class Candidate(val content: Content)
 
-// ── Sharing ───────────────────────────────────────────────────────────
-
 @Serializable data class SharedChat(val id: String, val title: String, val messages: List<Message>, val createdAt: Long)
 @Serializable data class VisionRequest(val model: String, val message: String, val imageBase64: String? = null)
 
 val sharedChats = ConcurrentHashMap<String, SharedChat>()
-
-// ── App Module ────────────────────────────────────────────────────────
 
 fun Application.module() {
     val jsonConfig = Json { ignoreUnknownKeys = true; isLenient = true; encodeDefaults = true }
@@ -143,7 +114,6 @@ fun Application.module() {
         get("/health") { call.respondText("OK") }
         get("/models") { call.respond(availableModels) }
 
-        // ── Non-streaming chat ────────────────────────────────────────
         post("/chat") {
             val req = call.receive<ChatRequest>()
             val msgs = buildMessages(req.system, req.message)
@@ -152,7 +122,6 @@ fun Application.module() {
             call.respondText(reply)
         }
 
-        // ── Chat with history ─────────────────────────────────────────
         post("/chat/history") {
             val req = call.receive<ChatRequestWithHistory>()
             val msgs = mutableListOf<Message>()
@@ -164,7 +133,6 @@ fun Application.module() {
             call.respondText(reply)
         }
 
-        // ── Streaming chat (chunked via raw HTTP) ─────────────────────
         post("/chat/stream") {
             val req = call.receive<ChatRequest>()
             if (req.model.startsWith("gemini")) {
@@ -173,28 +141,10 @@ fun Application.module() {
             }
             if (groqKey.isBlank()) { call.respondText("Error: GROQ_API_KEY not configured"); return@post }
 
-            call.response.contentType(ContentType.Text.EventStream.withCharset(Charsets.UTF_8))
-            call.response.header(HttpHeaders.CacheControl, "no-cache")
-            call.response.header(HttpHeaders.Connection, "keep-alive")
-
-            val channel = io.ktor.utils.io.ByteReadChannel(ByteArray(0))
-            call.respond(channel)
-
-            withContext(Dispatchers.IO) {
-                streamGroqResponse(groqKey, req.model, req.system, req.message) { token ->
-                    try {
-                        val json = Json.encodeToString(kotlinx.serialization.json.JsonElement.serializer(), JsonPrimitive(token))
-                        channel.writeFully("data: $json\n\n".toByteArray())
-                    } catch (_: Exception) {}
-                }
-                try {
-                    channel.writeFully("data: [DONE]\n\n".toByteArray())
-                    channel.close()
-                } catch (_: Exception) {}
-            }
+            val result = streamGroqResponse(groqKey, req.model, req.system, req.message)
+            call.respondText(result, ContentType.Text.EventStream)
         }
 
-        // ── Web search ────────────────────────────────────────────────
         post("/search") {
             val req = call.receive<ChatRequest>()
             val msgs = listOf(Message("user", "Search the web and answer: ${req.message}"))
@@ -202,7 +152,6 @@ fun Application.module() {
             call.respondText(reply)
         }
 
-        // ── File upload (vision) ───────────────────────────────────────
         post("/upload") {
             val req = call.receive<VisionRequest>()
             val reply = if (req.model.startsWith("gemini")) callGeminiVision(client, geminiKey, req.model, req.message, req.imageBase64)
@@ -210,17 +159,18 @@ fun Application.module() {
             call.respondText(reply)
         }
 
-        // ── Sharing ───────────────────────────────────────────────────
         post("/share") {
             val req = call.receive<SharedChat>()
             val id = if (req.id.isNotBlank()) req.id else UUID.randomUUID().toString().take(8)
             sharedChats[id] = req.copy(id = id)
             call.respond(mapOf("id" to id, "url" to "/shared/$id"))
         }
+
         get("/shared/{id}") {
             val chat = sharedChats[call.parameters["id"] ?: ""]
             if (chat != null) call.respond(chat) else call.respondText("Not found", status = HttpStatusCode.NotFound)
         }
+
         get("/shared/{id}/html") {
             val chat = sharedChats[call.parameters["id"] ?: ""]
             if (chat != null) {
@@ -246,8 +196,6 @@ fun Application.module() {
     }
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────
-
 fun buildMessages(system: String?, message: String): List<Message> {
     val msgs = mutableListOf<Message>()
     if (!system.isNullOrBlank()) msgs.add(Message("system", system))
@@ -255,21 +203,15 @@ fun buildMessages(system: String?, message: String): List<Message> {
     return msgs
 }
 
-// ── Streaming via raw HTTP (works with Ktor 2.3.5) ────────────────────
-
-private fun streamGroqResponse(apiKey: String, model: String, system: String?, message: String, onToken: (String) -> Unit) {
+private fun streamGroqResponse(apiKey: String, model: String, system: String?, message: String): String {
     val msgs = buildMessages(system, message)
     val bodyJson = buildString {
-        append("{")
-        append("\"model\":\"$model\",")
-        append("\"stream\":true,")
-        append("\"messages\":[")
+        append("{\"model\":\"$model\",\"stream\":true,\"messages\":[")
         msgs.forEachIndexed { i, m ->
             if (i > 0) append(",")
             append("{\"role\":\"${m.role}\",\"content\":\"${m.content.jsonEscape()}\"}")
         }
-        append("]")
-        append("}")
+        append("]}")
     }
 
     val url = URL("https://api.groq.com/openai/v1/chat/completions")
@@ -280,9 +222,9 @@ private fun streamGroqResponse(apiKey: String, model: String, system: String?, m
     conn.doOutput = true
     conn.connectTimeout = 30_000
     conn.readTimeout = 120_000
-
     conn.outputStream.use { it.write(bodyJson.toByteArray()) }
 
+    val result = StringBuilder()
     val reader = BufferedReader(InputStreamReader(conn.inputStream))
     var line: String?
     while (reader.readLine().also { line = it } != null) {
@@ -294,18 +236,17 @@ private fun streamGroqResponse(apiKey: String, model: String, system: String?, m
                 val chunk = Json { ignoreUnknownKeys = true; isLenient = true }
                     .decodeFromString<StreamChunk>(data)
                 val content = chunk.choices.firstOrNull()?.delta?.content
-                if (content != null) onToken(content)
+                if (content != null) result.append(content)
                 if (chunk.choices.firstOrNull()?.finish_reason != null) break
             } catch (_: Exception) {}
         }
     }
     conn.disconnect()
+    return result.toString()
 }
 
 fun String.jsonEscape(): String = this.replace("\\", "\\\\").replace("\"", "\\\"")
     .replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
-
-// ── Provider calls ────────────────────────────────────────────────────
 
 private suspend fun callGroq(client: HttpClient, apiKey: String, model: String, messages: List<Message>): String {
     if (apiKey.isBlank()) return "Error: GROQ_API_KEY not configured"
