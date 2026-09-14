@@ -22,10 +22,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -65,6 +67,13 @@ fun ChatScreen() {
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
+
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+
+    LaunchedEffect(showDrawer) {
+        if (showDrawer) drawerState.open() else drawerState.close()
+    }
 
     LaunchedEffect(Unit) {
         ApiClient.setServerUrl(serverUrl)
@@ -78,25 +87,56 @@ fun ChatScreen() {
         }
     }
 
-    // Navigation drawer content
+    fun sendMessage(text: String) {
+        scope.launch {
+            if (activeChat == null) {
+                val newChat = Conversation()
+                conversations = listOf(newChat) + conversations
+                activeChat = newChat
+                messages = emptyList()
+            }
+            val chatMsg = ChatMessage(text, true)
+            messages = messages + chatMsg
+            activeChat?.messages?.add(chatMsg)
+            activeChat = activeChat?.copy(title = text.take(40))
+            isLoading = true
+            val reply = ApiClient.sendMessage(selectedModel, text)
+            val replyMsg = ChatMessage(reply, false, selectedModel)
+            messages = messages + replyMsg
+            activeChat?.messages?.add(replyMsg)
+            isLoading = false
+        }
+    }
+
     ModalNavigationDrawer(
-        drawerState = rememberDrawerState(initialValue = DrawerValue.Closed).also {
-            if (showDrawer) LaunchedEffect(Unit) { it.open() }
-            if (!showDrawer) LaunchedEffect(Unit) { it.close() }
-        },
+        drawerState = drawerState,
+        gesturesEnabled = showDrawer,
         drawerContent = {
             ModalDrawerSheet(
                 modifier = Modifier.width(280.dp),
                 drawerContainerColor = Color(0xFF18181b)
             ) {
                 // Logo
-                Box(modifier = Modifier.padding(20.dp)) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
                         "⚡ Calyth",
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
+                    IconButton(onClick = { showDrawer = false }) {
+                        Icon(
+                            Icons.Default.KeyboardArrowLeft,
+                            "Close",
+                            tint = Color(0xFF71717a)
+                        )
+                    }
                 }
 
                 // New chat button
@@ -128,14 +168,14 @@ fun ChatScreen() {
                 Spacer(Modifier.height(16.dp))
 
                 // Chat list
-                    Text(
-                        "Recent",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF71717a),
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
-                        letterSpacing = 0.5.sp
-                    )
+                Text(
+                    "Recent",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF71717a),
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+                    letterSpacing = 0.5.sp
+                )
 
                 LazyColumn {
                     items(conversations) { chat ->
@@ -153,18 +193,39 @@ fun ChatScreen() {
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Row(
-                                modifier = Modifier.padding(10.dp, 8.dp),
+                                modifier = Modifier
+                                    .padding(10.dp, 8.dp)
+                                    .fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("💬", fontSize = 14.dp.value.sp)
+                                Text("💬", fontSize = 14.sp)
                                 Spacer(Modifier.width(8.dp))
                                 Text(
                                     chat.title,
                                     fontSize = 13.sp,
                                     color = if (isActive) Color(0xFF818cf8) else Color(0xFFa1a1aa),
                                     maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f)
                                 )
+                                // Delete button
+                                IconButton(
+                                    onClick = {
+                                        conversations = conversations.filter { it.id != chat.id }
+                                        if (activeChat?.id == chat.id) {
+                                            activeChat = null
+                                            messages = emptyList()
+                                        }
+                                    },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Close,
+                                        "Delete",
+                                        tint = Color(0xFF52525b),
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
                             }
                         }
                     }
@@ -228,15 +289,29 @@ fun ChatScreen() {
                             }
                         }
 
+                        // Copy last message
+                        IconButton(onClick = {
+                            if (messages.isNotEmpty()) {
+                                val last = messages.last()
+                                val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                val clip = android.content.ClipData.newPlainText("message", last.content)
+                                clipboard.setPrimaryClip(clip)
+                            }
+                        }) {
+                            Icon(Icons.Default.ContentCopy, "Copy", tint = Color(0xFFa1a1aa), modifier = Modifier.size(20.dp))
+                        }
+
                         // Export
                         IconButton(onClick = {
                             if (messages.isNotEmpty()) {
                                 val text = messages.joinToString("\n\n") { m ->
                                     "${if (m.isUser) "You" else "Calyth"}: ${m.content}"
                                 }
-                                val clipboard = android.content.ClipData.newPlainText("chat", text)
-                                android.content.ClipboardManager::class.java
-                                    .getDeclaredConstructor().newInstance()
+                                val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(android.content.Intent.EXTRA_TEXT, text)
+                                }
+                                context.startActivity(android.content.Intent.createChooser(shareIntent, "Share chat"))
                             }
                         }) {
                             Icon(Icons.Default.Share, "Export", tint = Color(0xFFa1a1aa), modifier = Modifier.size(20.dp))
@@ -346,28 +421,7 @@ fun ChatScreen() {
                                     modifier = Modifier
                                         .padding(horizontal = 32.dp, vertical = 3.dp)
                                         .fillMaxWidth()
-                                        .clickable {
-                                            inputText = prompt
-                                            // Auto-send
-                                            scope.launch {
-                                                if (activeChat == null) {
-                                                    val newChat = Conversation()
-                                                    conversations = listOf(newChat) + conversations
-                                                    activeChat = newChat
-                                                    messages = emptyList()
-                                                }
-                                                val msg = ChatMessage(prompt, true)
-                                                messages = messages + msg
-                                                activeChat?.messages?.add(msg)
-                                                isLoading = true
-                                                val reply = ApiClient.sendMessage(selectedModel, prompt)
-                                                val replyMsg = ChatMessage(reply, false, selectedModel)
-                                                messages = messages + replyMsg
-                                                activeChat?.messages?.add(replyMsg)
-                                                activeChat = activeChat?.copy(title = prompt.take(40))
-                                                isLoading = false
-                                            }
-                                        },
+                                        .clickable { sendMessage(prompt) },
                                     color = Color(0xFF27272a),
                                     shape = RoundedCornerShape(20.dp)
                                 ) {
@@ -402,6 +456,34 @@ fun ChatScreen() {
                     }
                 }
 
+                // Stop button
+                if (isLoading) {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 32.dp, vertical = 4.dp),
+                        color = Color(0xFF27272a),
+                        shape = RoundedCornerShape(20.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .clickable { isLoading = false }
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Close,
+                                "Stop",
+                                tint = Color(0xFFa1a1aa),
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text("Stop generating", fontSize = 13.sp, color = Color(0xFFa1a1aa))
+                        }
+                    }
+                }
+
                 // Input
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
@@ -432,24 +514,7 @@ fun ChatScreen() {
                                             val msg = inputText.trim()
                                             inputText = ""
                                             focusManager.clearFocus()
-                                            scope.launch {
-                                                if (activeChat == null) {
-                                                    val newChat = Conversation()
-                                                    conversations = listOf(newChat) + conversations
-                                                    activeChat = newChat
-                                                    messages = emptyList()
-                                                }
-                                                val chatMsg = ChatMessage(msg, true)
-                                                messages = messages + chatMsg
-                                                activeChat?.messages?.add(chatMsg)
-                                                activeChat = activeChat?.copy(title = msg.take(40))
-                                                isLoading = true
-                                                val reply = ApiClient.sendMessage(selectedModel, msg)
-                                                val replyMsg = ChatMessage(reply, false, selectedModel)
-                                                messages = messages + replyMsg
-                                                activeChat?.messages?.add(replyMsg)
-                                                isLoading = false
-                                            }
+                                            sendMessage(msg)
                                         }
                                     }),
                                     colors = OutlinedTextFieldDefaults.colors(
@@ -472,24 +537,7 @@ fun ChatScreen() {
                                                 val msg = inputText.trim()
                                                 inputText = ""
                                                 focusManager.clearFocus()
-                                                scope.launch {
-                                                    if (activeChat == null) {
-                                                        val newChat = Conversation()
-                                                        conversations = listOf(newChat) + conversations
-                                                        activeChat = newChat
-                                                        messages = emptyList()
-                                                    }
-                                                    val chatMsg = ChatMessage(msg, true)
-                                                    messages = messages + chatMsg
-                                                    activeChat?.messages?.add(chatMsg)
-                                                    activeChat = activeChat?.copy(title = msg.take(40))
-                                                    isLoading = true
-                                                    val reply = ApiClient.sendMessage(selectedModel, msg)
-                                                    val replyMsg = ChatMessage(reply, false, selectedModel)
-                                                    messages = messages + replyMsg
-                                                    activeChat?.messages?.add(replyMsg)
-                                                    isLoading = false
-                                                }
+                                                sendMessage(msg)
                                             }
                                         },
                                     color = if (inputText.isNotBlank()) Color(0xFF6366f1) else Color(0xFF27272a)
@@ -512,7 +560,7 @@ fun ChatScreen() {
                                 .padding(top = 6.dp),
                             fontSize = 11.sp,
                             color = Color(0xFF52525b),
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
@@ -539,7 +587,6 @@ fun MessageBubble(message: ChatMessage, models: List<ModelInfo>) {
         horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
     ) {
         if (!isUser) {
-            // Avatar
             Box(
                 modifier = Modifier
                     .size(30.dp)
@@ -555,7 +602,6 @@ fun MessageBubble(message: ChatMessage, models: List<ModelInfo>) {
         Column(
             modifier = Modifier.widthIn(max = 280.dp)
         ) {
-            // Header
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(name, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFa1a1aa))
                 if (message.model != null) {
@@ -583,7 +629,6 @@ fun MessageBubble(message: ChatMessage, models: List<ModelInfo>) {
 
             Spacer(Modifier.height(4.dp))
 
-            // Bubble
             Surface(
                 shape = RoundedCornerShape(
                     topStart = if (isUser) 14.dp else 4.dp,
