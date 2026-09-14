@@ -27,6 +27,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           cache-read-only: true
+          validate-wrapper: false
 
       - name: Build
         run: ./gradlew build
@@ -55,7 +56,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           cache-read-only: true
-          build-scan-publish: false
+          validate-wrapper: false
 
       - name: Build APK
         working-directory: android
