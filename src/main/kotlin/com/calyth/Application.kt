@@ -54,14 +54,19 @@ fun main() {
 data class ModelInfo(val id: String, val name: String, val provider: String, val description: String)
 
 val availableModels = listOf(
-    ModelInfo("openai/gpt-oss-20b", "GPT-OSS 20B", "Groq", "Fast, general-purpose model"),
     ModelInfo("openai/gpt-oss-120b", "GPT-OSS 120B", "Groq", "Larger, more capable GPT"),
-    ModelInfo("qwen/qwen3.6-27b", "Qwen 3.6 27B", "Groq", "Strong reasoning & coding"),
+    ModelInfo("openai/gpt-oss-20b", "GPT-OSS 20B", "Groq", "Fast, general-purpose model"),
+    ModelInfo("qwen/qwen3.8-27b", "Qwen 3.8 27B", "Groq", "Strong reasoning & coding"),
+    ModelInfo("qwen/qwen3.6-27b", "Qwen 3.6 27B", "Groq", "Reliable reasoning & coding"),
     ModelInfo("groq/compound", "Groq Compound", "Groq", "Multi-step reasoning"),
     ModelInfo("groq/compound-mini", "Groq Compound Mini", "Groq", "Lightweight multi-step reasoning"),
-    ModelInfo("allam-2-7b", "Allam 2 7B", "Groq", "Arabic-first, lightweight"),
-    ModelInfo("gemini-1.5-flash", "Gemini 1.5 Flash", "Google", "Fast, free tier (needs GEMINI_API_KEY)"),
-    ModelInfo("gemini-1.5-pro", "Gemini 1.5 Pro", "Google", "High quality (needs GEMINI_API_KEY)")
+    ModelInfo("canopylabs/orpheus-arabic-saudi", "Orpheus Arabic Saudi", "CanopyLabs", "Arabic Saudi voice synthesis"),
+    ModelInfo("canopylabs/orpheus-v1-english", "Orpheus V1 English", "CanopyLabs", "English voice synthesis"),
+    ModelInfo("whisper-large-v3", "Whisper Large V3", "Groq", "Speech-to-text, highest accuracy"),
+    ModelInfo("whisper-large-v3-turbo", "Whisper Large V3 Turbo", "Groq", "Speech-to-text, faster"),
+    ModelInfo("openai/gpt-oss-safeguard-20b", "GPT-OSS Safeguard 20B", "Groq", "Content safety model"),
+    ModelInfo("meta-llama/llama-prompt-guard-2-86m", "Llama Prompt Guard 2 86M", "Meta", "Prompt injection detection"),
+    ModelInfo("meta-llama/llama-prompt-guard-2-22m", "Llama Prompt Guard 2 22M", "Meta", "Lightweight prompt guard")
 )
 
 @Serializable data class ChatRequest(val model: String = "openai/gpt-oss-20b", val message: String, val system: String? = null)

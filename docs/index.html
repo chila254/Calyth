@@ -298,10 +298,16 @@
     let active=null, gen=false, abort=null, files=[], sIdx=-1;
     let light=localStorage.getItem('c_theme')==='light', wsOn=false;
     const MODELS=[
-        {id:'openai/gpt-oss-20b',n:'GPT-OSS 20B',p:'groq'},{id:'openai/gpt-oss-120b',n:'GPT-OSS 120B',p:'groq'},
-        {id:'qwen/qwen3.6-27b',n:'Qwen 3.6 27B',p:'groq'},{id:'groq/compound',n:'Groq Compound',p:'groq'},
-        {id:'groq/compound-mini',n:'Compound Mini',p:'groq'},{id:'allam-2-7b',n:'Allam 2 7B',p:'groq'},
-        {id:'gemini-1.5-flash',n:'Gemini Flash',p:'google'},{id:'gemini-1.5-pro',n:'Gemini Pro',p:'google'},
+        {id:'openai/gpt-oss-120b',n:'GPT-OSS 120B',p:'groq'},{id:'openai/gpt-oss-20b',n:'GPT-OSS 20B',p:'groq'},
+        {id:'qwen/qwen3.8-27b',n:'Qwen 3.8 27B',p:'groq'},{id:'qwen/qwen3.6-27b',n:'Qwen 3.6 27B',p:'groq'},
+        {id:'groq/compound',n:'Groq Compound',p:'groq'},{id:'groq/compound-mini',n:'Compound Mini',p:'groq'},
+        {id:'canopylabs/orpheus-arabic-saudi',n:'Orpheus Arabic Saudi',p:'canopylabs'},
+        {id:'canopylabs/orpheus-v1-english',n:'Orpheus V1 English',p:'canopylabs'},
+        {id:'whisper-large-v3',n:'Whisper Large V3',p:'groq'},
+        {id:'whisper-large-v3-turbo',n:'Whisper V3 Turbo',p:'groq'},
+        {id:'openai/gpt-oss-safeguard-20b',n:'GPT-OSS Safeguard',p:'groq'},
+        {id:'meta-llama/llama-prompt-guard-2-86m',n:'Prompt Guard 86M',p:'meta'},
+        {id:'meta-llama/llama-prompt-guard-2-22m',n:'Prompt Guard 22M',p:'meta'},
     ];
     let model=localStorage.getItem('c_model')||'openai/gpt-oss-20b';
 
