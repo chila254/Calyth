@@ -11,6 +11,7 @@ import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation as ServerContentNegotiation
+import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -41,7 +42,8 @@ fun env(key: String): String = System.getenv(key) ?: System.getProperty(key) ?: 
 
 fun main() {
     loadEnv()
-    embeddedServer(Netty, port = 8082) {
+    val port = (System.getenv("PORT") ?: System.getProperty("PORT") ?: "8082").toInt()
+    embeddedServer(Netty, port = port) {
         module()
     }.start(wait = true)
 }
@@ -105,6 +107,14 @@ fun Application.module() {
     val jsonConfig = Json { ignoreUnknownKeys = true; isLenient = true }
     install(ServerContentNegotiation) {
         json(jsonConfig)
+    }
+    install(CORS) {
+        anyHost()
+        allowHeader(HttpHeaders.ContentType)
+        allowHeader(HttpHeaders.Authorization)
+        allowMethod(HttpMethod.Options)
+        allowMethod(HttpMethod.Post)
+        allowMethod(HttpMethod.Get)
     }
     val groqKey = env("GROQ_API_KEY")
     val geminiKey = env("GEMINI_API_KEY")
