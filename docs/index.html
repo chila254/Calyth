@@ -266,6 +266,26 @@
                     </div>
                 </div>
             </div>
+
+            <div class="sb-section">
+                <div class="sidebar-panel" id="folderPanel">
+                    <div class="sp-title" id="folderPanelTitle">New Folder</div>
+                    <div class="sp-field"><label>Folder name</label><input id="folderNameIn" type="text" placeholder="My folder"></div>
+                    <div id="moveChatList" style="max-height:200px;overflow-y:auto;margin-top:8px"></div>
+                    <div class="sp-row" style="margin-top:8px">
+                        <button class="sp-btn sp-btn2" onclick="togglePanel('folder')" style="flex:1">Cancel</button>
+                        <button class="sp-btn sp-btn1" id="folderPanelOk" style="flex:1">Create</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sb-section">
+                <div class="sidebar-panel" id="sharePanel">
+                    <div class="sp-title">Share Conversation</div>
+                    <div id="shareContent"></div>
+                    <button class="sp-btn sp-btn2" onclick="togglePanel('share')" style="margin-top:8px;width:100%">Close</button>
+                </div>
+            </div>
         </div>
         <div class="sb-foot">
             <div class="srv-status" onclick="togglePanel('settings')"><div class="dot" id="sDot"></div><span id="sTxt">Not connected</span></div>
@@ -333,26 +353,6 @@
         <div class="ctx-item danger" onclick="ctxAction('delete')">🗑 Delete</div>
     </div>
 
-    <div class="modal-bg" id="shareModal">
-        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:20px;width:90%;max-width:400px">
-            <h3 style="font-size:15px;font-weight:600;margin-bottom:14px">Share Conversation</h3>
-            <div id="shareContent"></div>
-            <div style="display:flex;gap:6px;justify-content:flex-end;margin-top:14px"><button class="sp-btn sp-btn2" onclick="$('shareModal').classList.remove('on')">Close</button></div>
-        </div>
-    </div>
-
-    <div class="modal-bg" id="folderModal">
-        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:20px;width:90%;max-width:350px">
-            <h3 style="font-size:15px;font-weight:600;margin-bottom:14px" id="folderModalTitle">New Folder</h3>
-            <div class="sp-field"><label>Folder name</label><input id="folderNameIn" type="text" placeholder="My folder"></div>
-            <div id="moveChatList" style="max-height:200px;overflow-y:auto;margin-top:8px"></div>
-            <div style="display:flex;gap:6px;justify-content:flex-end;margin-top:14px">
-                <button class="sp-btn sp-btn2" onclick="$('folderModal').classList.remove('on')">Cancel</button>
-                <button class="sp-btn sp-btn1" id="folderModalOk">Create</button>
-            </div>
-        </div>
-    </div>
-
     <script>
     const $=id=>document.getElementById(id);
     const DEF='https://calyth.onrender.com';
@@ -393,7 +393,7 @@
         if(e.ctrlKey&&e.key==='b'){e.preventDefault();toggleSidebar()}
         if(e.ctrlKey&&e.key==='n'){e.preventDefault();newChat()}
         if(e.ctrlKey&&e.key==='f'){e.preventDefault();toggleSearch()}
-        if(e.key==='Escape'){$('shareModal').classList.remove('on');$('folderModal').classList.remove('on');$('ctxMenu').classList.remove('show')}
+        if(e.key==='Escape'){togglePanel('settings');togglePanel('folder');togglePanel('share');$('ctxMenu').classList.remove('show')}
     });
     document.addEventListener('click',e=>{if(!e.target.closest('.ctx-menu'))$('ctxMenu').classList.remove('show')});
 
@@ -442,11 +442,11 @@
     }
 
     function createFolder(){
-        $('folderModalTitle').textContent='New Folder';
+        $('folderPanelTitle').textContent='New Folder';
         $('folderNameIn').value='';
         $('moveChatList').innerHTML='';
-        $('folderModalOk').onclick=()=>{const n=$('folderNameIn').value.trim();if(!n)return;folders.push({id:Date.now(),name:n});saveFolders();renderFolders();$('folderModal').classList.remove('on')};
-        $('folderModal').classList.add('on');$('folderNameIn').focus();
+        $('folderPanelOk').onclick=()=>{const n=$('folderNameIn').value.trim();if(!n)return;folders.push({id:Date.now(),name:n});saveFolders();renderFolders();togglePanel('folder')};
+        togglePanel('folder');$('folderNameIn').focus();
     }
     function renameFolder(id){const f=folders.find(x=>x.id===id);if(!f)return;const n=prompt('Folder name:',f.name);if(n&&n.trim()){f.name=n.trim();saveFolders();renderFolders()}}
     function deleteFolder(id){if(!confirm('Delete folder? Chats will be moved back to root.'))return;chats.forEach(ch=>{if(ch.folderId===id)ch.folderId=null});folders=folders.filter(f=>f.id!==id);save();saveFolders();renderList();renderFolders()}
@@ -472,9 +472,12 @@
     function moveChatToFolder(chatId,folderId){const ch=chats.find(c=>c.id===chatId);if(ch)ch.folderId=folderId;save();renderList();renderFolders();$('ctxMenu').classList.remove('show')}
 
     function togglePanel(id){
-        const panels={settings:'settingsPanel',imgGen:'imgGenPanel'};
-        Object.values(panels).forEach(p=>{if(p!==id+'Panel')$(p)?.classList.remove('open')});
-        $(id+'Panel')?.classList.toggle('open');
+        const panels=['settings','folder','share','imgGen'];
+        const el=$(id+'Panel');
+        if(!el)return;
+        const isOpen=el.classList.contains('open');
+        panels.forEach(p=>{const e=$(p+'Panel');if(e)e.classList.remove('open')});
+        if(!isOpen)el.classList.add('open');
     }
     function toggleTheme(){light=!light;localStorage.setItem('c_theme',light?'light':'dark');document.body.classList.toggle('light',light);$('themeSw').classList.toggle('on',!light)}
 
@@ -601,8 +604,8 @@
         try{const r=await fetch(srv+'/share',{method:'POST',headers:{'Content-Type':'application/json'},
             body:JSON.stringify({id:'',title:ch.title,messages:ch.messages.map(m=>({role:m.role==='error'?'assistant':m.role,content:m.content})),createdAt:Date.now()})});
         const d=await r.json();const url=location.origin+'/shared/'+d.id+'/html';
-        $('shareContent').innerHTML=`<p style="font-size:13px;color:var(--fg2);margin-bottom:10px">Share this link:</p><div class="share-link">${url}</div><button class="sp-btn sp-btn1" style="margin-top:10px" onclick="navigator.clipboard.writeText('${url}');this.textContent='Copied!'">Copy</button>`;
-        $('shareModal').classList.add('on')}catch(e){alert('Failed: '+e.message)}
+        $('shareContent').innerHTML=`<p style="font-size:13px;color:var(--fg2);margin-bottom:10px">Share this link:</p><div class="share-link">${url}</div><button class="sp-btn sp-btn1" style="margin-top:10px;width:100%" onclick="navigator.clipboard.writeText('${url}');this.textContent='Copied!'">Copy</button>`;
+        togglePanel('share')}catch(e){alert('Failed: '+e.message)}
     }
 
     function appendMsg(role,content,model,animate,idx,webSearch){
