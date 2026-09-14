@@ -157,7 +157,7 @@ fun ChatScreen() {
             Spacer(Modifier.height(8.dp))
             // Theme toggle
             Row(Modifier.fillMaxWidth().clickable { isDark = !isDark }.padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(if (isDark) Icons.Default.DarkMode else Icons.Default.LightMode, null, tint = fg2, modifier = Modifier.size(20.dp))
+                Icon(if (isDark) Icons.Default.Settings else Icons.Default.Settings, null, tint = fg2, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(12.dp)); Text(if (isDark) "Dark mode" else "Light mode", fontSize = 14.sp, color = fg2)
             }
             // New chat
@@ -171,7 +171,7 @@ fun ChatScreen() {
                     val isActive = activeChat?.id == chat.id
                     Surface(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 1.dp).clickable { activeChat = chat; messages = chat.messages.toList(); showDrawer = false }, color = if (isActive) Purple.copy(alpha = .1f) else Color.Transparent, shape = RoundedCornerShape(8.dp)) {
                         Row(Modifier.padding(horizontal = 12.dp, vertical = 10.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.ChatBubbleOutline, null, tint = if (isActive) Purple2 else fg2, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Bolt, null, tint = if (isActive) Purple2 else fg2, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(10.dp))
                             Text(chat.title, fontSize = 13.sp, color = if (isActive) Purple2 else fg2, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                             IconButton(onClick = { conversations = conversations.filter { it.id != chat.id }; if (activeChat?.id == chat.id) { activeChat = null; messages = emptyList() } }, modifier = Modifier.size(20.dp)) { Icon(Icons.Default.Close, "Delete", tint = Subtext, modifier = Modifier.size(14.dp)) }
@@ -192,7 +192,7 @@ fun ChatScreen() {
                             DropdownMenu(exp, { exp = false }) { models.forEach { m -> DropdownMenuItem(text = { Column { Text(m.name, fontSize = 13.sp); Text("${m.provider} · ${m.description}", fontSize = 10.sp, color = Subtext) } }, onClick = { selectedModel = m.id; exp = false }) } }
                         }
                         IconButton(onClick = { webSearchEnabled = !webSearchEnabled }) { Icon(Icons.Default.Search, "Search web", tint = if (webSearchEnabled) Purple else fg2, modifier = Modifier.size(20.dp)) }
-                        IconButton(onClick = { showSearch = !showSearch }) { Icon(Icons.Default.FilterList, "Filter", tint = if (showSearch) Purple else fg2, modifier = Modifier.size(20.dp)) }
+                        IconButton(onClick = { showSearch = !showSearch }) { Icon(Icons.Default.Search, "Filter", tint = if (showSearch) Purple else fg2, modifier = Modifier.size(20.dp)) }
                         IconButton(onClick = { if (messages.isNotEmpty()) { val t = messages.joinToString("\n\n") { m -> "${if (m.isUser) "You" else "Calyth"}: ${m.content}" }; ctx.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, t) }, "Share")) } }) { Icon(Icons.Default.Share, "Share", tint = fg2, modifier = Modifier.size(20.dp)) }
                         IconButton(onClick = { showSettings = !showSettings }) { Icon(Icons.Default.Settings, "Settings", tint = fg2, modifier = Modifier.size(20.dp)) }
                     }, colors = TopAppBarDefaults.topAppBarColors(containerColor = surface))
@@ -226,10 +226,10 @@ fun ChatScreen() {
                 // Input
                 Surface(Modifier.fillMaxWidth(), color = bg) {
                     Column(Modifier.padding(12.dp)) {
-                        pendingImage?.let { (n, _) -> Row(Modifier.padding(bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Image, null, tint = Purple, modifier = Modifier.size(16.dp)); Spacer(Modifier.width(6.dp)); Text(n, fontSize = 12.sp, color = fg2, modifier = Modifier.weight(1f)); IconButton(onClick = { pendingImage = null }, Modifier.size(20.dp)) { Icon(Icons.Default.Close, null, tint = Subtext, modifier = Modifier.size(14.dp)) } } }
+                        pendingImage?.let { (n, _) -> Row(Modifier.padding(bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Bolt, null, tint = Purple, modifier = Modifier.size(16.dp)); Spacer(Modifier.width(6.dp)); Text(n, fontSize = 12.sp, color = fg2, modifier = Modifier.weight(1f)); IconButton(onClick = { pendingImage = null }, Modifier.size(20.dp)) { Icon(Icons.Default.Close, null, tint = Subtext, modifier = Modifier.size(14.dp)) } } }
                         Surface(Modifier.fillMaxWidth(), color = surface, shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, border)) {
                             Row(Modifier.padding(6.dp), verticalAlignment = Alignment.Bottom) {
-                                IconButton(onClick = { imagePicker.launch("image/*") }, Modifier.size(32.dp)) { Icon(Icons.Default.AttachFile, "Attach", tint = fg2, modifier = Modifier.size(18.dp)) }
+                                IconButton(onClick = { imagePicker.launch("image/*") }, Modifier.size(32.dp)) { Icon(Icons.Default.Add, "Attach", tint = fg2, modifier = Modifier.size(18.dp)) }
                                 OutlinedTextField(value = inputText, onValueChange = { inputText = it }, modifier = Modifier.weight(1f), placeholder = { Text("Message Calyth...", fontSize = 14.sp, color = Subtext) }, maxLines = 4, keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send), keyboardActions = KeyboardActions(onSend = { if (inputText.isNotBlank() && !isLoading) { val m = inputText.trim(); inputText = ""; focusManager.clearFocus(); sendMessage(m) } }), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Color.Transparent, unfocusedBorderColor = Color.Transparent, cursorColor = Purple, focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent), textStyle = MaterialTheme.typography.bodyMedium.copy(color = fg))
                                 FilledIconButton(onClick = { if (inputText.isNotBlank() && !isLoading) { val m = inputText.trim(); inputText = ""; focusManager.clearFocus(); sendMessage(m) } }, modifier = Modifier.size(34.dp), colors = IconButtonDefaults.filledIconButtonColors(containerColor = if (inputText.isNotBlank()) Purple else border)) { Icon(Icons.AutoMirrored.Filled.Send, "Send", tint = Color.White, modifier = Modifier.size(16.dp)) }
                             }
@@ -264,8 +264,8 @@ fun MsgBubble(msg: ChatMessage, models: List<ModelInfo>, isDark: Boolean, onRege
                 Text(msg.content, Modifier.padding(10.dp), fontSize = 14.sp, lineHeight = 20.sp, color = if (isUser) Color.White else fg)
             }
             Row(Modifier.padding(top = 3.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                AssistChip(onClick = onCopy, label = { Text("Copy", fontSize = 10.sp) }, leadingIcon = { Icon(Icons.Default.ContentCopy, null, Modifier.size(12.dp)) }, modifier = Modifier.height(24.dp), shape = RoundedCornerShape(6.dp), colors = AssistChipDefaults.assistChipColors(containerColor = border))
-                if (!isUser) AssistChip(onClick = onRegen, label = { Text("Retry", fontSize = 10.sp) }, leadingIcon = { Icon(Icons.Default.Refresh, null, Modifier.size(12.dp)) }, modifier = Modifier.height(24.dp), shape = RoundedCornerShape(6.dp), colors = AssistChipDefaults.assistChipColors(containerColor = border))
+                AssistChip(onClick = onCopy, label = { Text("Copy", fontSize = 10.sp) }, leadingIcon = { Icon(Icons.Default.Share, null, Modifier.size(12.dp)) }, modifier = Modifier.height(24.dp), shape = RoundedCornerShape(6.dp), colors = AssistChipDefaults.assistChipColors(containerColor = border))
+                if (!isUser) AssistChip(onClick = onRegen, label = { Text("Retry", fontSize = 10.sp) }, leadingIcon = { Icon(Icons.Default.Bolt, null, Modifier.size(12.dp)) }, modifier = Modifier.height(24.dp), shape = RoundedCornerShape(6.dp), colors = AssistChipDefaults.assistChipColors(containerColor = border))
             }
         }
         if (isUser) { Spacer(Modifier.width(8.dp)); Box(Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(purple), contentAlignment = Alignment.Center) { Icon(Icons.Default.Person, null, tint = Color.White, modifier = Modifier.size(14.dp)) } }
